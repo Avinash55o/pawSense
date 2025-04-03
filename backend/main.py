@@ -464,4 +464,9 @@ async def visual_reasoning(file: UploadFile = File(...)):
         return {
             "success": False,
             "error": str(e)
-        } 
+        }
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for Render."""
+    return {"status": "healthy"} 

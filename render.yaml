@@ -1,0 +1,31 @@
+services:
+  # Backend API service
+  - type: web
+    name: pawsense-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ALLOWED_ORIGINS
+        value: https://pawsense-ui.onrender.com
+      - key: MODEL_PATH
+        value: models/breed_model/mobilenetv2_dogbreeds.pth
+    healthCheckPath: /api/health
+
+  # Frontend service
+  - type: web
+    name: pawsense-ui
+    runtime: node
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://pawsense-api.onrender.com
+      - key: NODE_ENV
+        value: production 

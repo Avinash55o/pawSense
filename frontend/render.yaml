@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: pawsense-ui
+    runtime: node
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://pawsense-api.onrender.com
+      - key: NODE_ENV
+        value: production 
