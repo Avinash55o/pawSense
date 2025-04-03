@@ -1,84 +1,79 @@
-# Dog Breed Classifier
+# PawSense - Dog Breed Identification with AI
 
-A web application that uses deep learning to identify dog breeds from uploaded images. Built with Next.js, FastAPI, and PyTorch.
+PawSense is an advanced dog breed identification and analysis system that combines image classification with Vision-Language capabilities.
 
-## Features
+## Key Features
 
-- Upload and analyze dog photos
-- Real-time breed classification
-- Detailed breed information and characteristics
-- Modern, responsive UI
-- Dark mode support
+- **Accurate Breed Identification**: Upload any dog photo to get instant breed identification with confidence scores
+- **Visual Analysis**: Get detailed visual reasoning about the dog's appearance and distinctive features
+- **Natural Language Q&A**: Ask questions about the detected breed or dogs in general
+- **Visual Reasoning**: Understand exactly how the AI made its identification decision
 
-## Tech Stack
+## Architecture
 
-### Frontend
-- Next.js 13
-- TypeScript
-- Tailwind CSS
-- Radix UI Components
-- React Hook Form
+The project consists of two main components:
+
+- **Backend**: A FastAPI-based Python service that provides the AI capabilities:
+  - MobileNetV2-based breed classification
+  - BLIP Vision-Language Model for visual understanding
+  - General dog knowledge Q&A
+
+- **Frontend**: A Next.js application with a modern UI for interacting with the AI:
+  - Clean, responsive interface
+  - Real-time analysis
+  - Multiple viewing modes for different types of analysis
+
+## Deployment
+
+The application is deployed on Railway, with separate services for:
+
+- **Frontend**: https://pawsense-frontend-production.up.railway.app
+- **Backend**: https://pawsense-backend-production.up.railway.app
+
+## Local Development
 
 ### Backend
-- FastAPI
-- PyTorch
-- TorchVision
-- Python 3.8+
 
-## Getting Started
-
-### Prerequisites
-- Node.js 16+
-- Python 3.8+
-- pip
-- npm or yarn
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/dog-breed-classifier.git
-cd dog-breed-classifier
-```
-
-2. Install frontend dependencies:
-```bash
-cd frontend
-npm install
-# or
-yarn install
-```
-
-3. Install backend dependencies:
 ```bash
 cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-### Running the Application
-
-1. Start the backend server:
-```bash
-cd backend
 uvicorn main:app --reload
 ```
 
-2. Start the frontend development server:
+### Frontend
+
 ```bash
 cd frontend
+npm install
 npm run dev
-# or
-yarn dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+## Docker Support
 
-## Usage
+Both components include Docker support for containerized deployment:
 
-1. Click the "Upload Dog Image" button to select a photo
-2. Wait for the analysis to complete
-3. View the predicted breed(s) and their confidence scores
-4. Read detailed information about the identified breed(s)
+### Backend
+
+```bash
+cd backend
+docker build -t pawsense-backend .
+docker run -p 8000:8000 pawsense-backend
+```
+
+### Frontend
+
+```bash
+cd frontend
+docker build -t pawsense-frontend .
+docker run -p 3000:3000 -e BACKEND_URL=http://localhost:8000 pawsense-frontend
+```
+
+## Technology Stack
+
+- **Backend**: FastAPI, PyTorch, OpenVINO, BLIP, Transformers
+- **Frontend**: Next.js, React, Tailwind CSS, Shadcn UI
 
 ## License
 

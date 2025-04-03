@@ -7,7 +7,12 @@ const nextConfig = {
   },
   images: { unoptimized: true },
   async rewrites() {
-    const API_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+    const API_URL = process.env.BACKEND_URL || 
+                   process.env.NEXT_PUBLIC_API_URL || 
+                   'http://localhost:8000';
+    
+    console.log(`Using API URL: ${API_URL}`);
+    
     return [
       {
         source: '/api/:path*',

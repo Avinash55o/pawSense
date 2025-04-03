@@ -18,7 +18,7 @@ models/breed_model/*.bin
 models/breed_model/*.xml
 models/breed_model/*.onnx
 # Only include the PyTorch weights which are essential
-models/breed_model/mobilenetv2_dogbreeds.pth
+#models/breed_model/mobilenetv2_dogbreeds.pth
 
 # Local development settings
 .idea/
@@ -32,7 +32,7 @@ temp/
 tmp/
 
 # Docker generated files
-.dockerignore
+
 Dockerfile.*
 
 # Environment configurations

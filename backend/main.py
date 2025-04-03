@@ -16,6 +16,11 @@ import time
 import re
 from torchvision import transforms
 from io import BytesIO
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Import our VLM extension
 from vlm_extension import DogBreedVLM
@@ -33,10 +38,15 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Get CORS settings from environment
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
+if allowed_origins != "*":
+    allowed_origins = [origin.strip() for origin in allowed_origins.split(",")]
+
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,12 +64,16 @@ def load_model():
     try:
         logger.info("Loading PyTorch model...")
         
+        # Get model path from environment or use default
+        model_path = os.getenv("MODEL_PATH", "models/breed_model/mobilenetv2_dogbreeds.pth")
+        
         # Load PyTorch model
         pytorch_model = models.mobilenet_v2(pretrained=False)
         pytorch_model.classifier[1] = nn.Linear(pytorch_model.last_channel, 120)  # 120 breeds
         
         # Load trained weights
-        model_path = Path('models/breed_model/mobilenetv2_dogbreeds.pth')
+        model_path = Path(model_path)
+        logger.info(f"Loading model from: {model_path}")
         pytorch_model.load_state_dict(torch.load(model_path))
         pytorch_model.eval()
         
@@ -70,10 +84,16 @@ def load_model():
         return pytorch_model
     except Exception as e:
         logger.error(f"Error loading model: {str(e)}")
+        logger.error(traceback.format_exc())
         raise
 
-# Initialize models
-model = load_model()
+# Initialize models on startup
+@app.on_event("startup")
+async def startup_event():
+    global model, general_qa_model
+    model = load_model()
+    initialize_general_qa_model()
+    logger.info("Application startup complete")
 
 # Initialize the VLM when needed
 def get_vlm():
@@ -92,9 +112,6 @@ def initialize_general_qa_model():
         general_qa_model = get_qa_model()
         logger.info("General QA model initialized")
     return general_qa_model
-
-# Initialize on startup
-initialize_general_qa_model()
 
 # Function to get the last processed image for VLM
 def get_image_for_prediction():
