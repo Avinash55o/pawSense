@@ -42,16 +42,83 @@ class DogBreedVLM:
     def _load_blip_model(self):
         """Lazy initialization of BLIP model for visual understanding."""
         try:
+            # Import deployment settings
+            try:
+                from deployment_config import get_deployment_settings
+                settings = get_deployment_settings()
+            except ImportError:
+                settings = {
+                    "use_cpu_for_blip": True,
+                    "blip_model": "Salesforce/blip-vqa-base",
+                    "blip_max_length": 100,
+                    "model_load_timeout": 60,
+                    "enable_fallbacks": True
+                }
+            
             logger.info("Loading BLIP model for enhanced visual understanding...")
-            model_name = "Salesforce/blip-vqa-base"
-            self.blip_processor = BlipProcessor.from_pretrained(model_name)
-            self.blip_model = BlipForQuestionAnswering.from_pretrained(model_name)
-            self.blip_model.eval()
-            self.blip_initialized = True
-            logger.info("BLIP model loaded successfully")
-            return True
+            model_name = settings["blip_model"]
+            
+            # Set a timeout for model loading
+            import signal
+            
+            class TimeoutException(Exception):
+                pass
+            
+            def timeout_handler(signum, frame):
+                raise TimeoutException("Model loading timed out")
+            
+            # Register the signal function handler
+            signal.signal(signal.SIGALRM, timeout_handler)
+            
+            # Set the timeout
+            signal.alarm(settings["model_load_timeout"])
+            
+            try:
+                # Import necessary modules only when needed
+                import gc
+                import torch
+                from transformers import BlipProcessor, BlipForQuestionAnswering
+                
+                # Force garbage collection before loading model
+                gc.collect()
+                if torch.cuda.is_available() and not settings["use_cpu_for_blip"]:
+                    torch.cuda.empty_cache()
+                
+                # Load the processor and model
+                self.blip_processor = BlipProcessor.from_pretrained(model_name)
+                
+                # Determine device
+                device = "cpu" if settings["use_cpu_for_blip"] else "cuda" if torch.cuda.is_available() else "cpu"
+                logger.info(f"Loading BLIP model on {device}")
+                
+                # Load model with specific device
+                self.blip_model = BlipForQuestionAnswering.from_pretrained(
+                    model_name,
+                    device_map=device,
+                    low_cpu_mem_usage=True
+                )
+                
+                # Set model to evaluation mode
+                self.blip_model.eval()
+                self.blip_initialized = True
+                logger.info("BLIP model loaded successfully")
+                
+                # Disable the alarm
+                signal.alarm(0)
+                return True
+                
+            except TimeoutException:
+                logger.error("BLIP model loading timed out - using fallbacks")
+                if settings["enable_fallbacks"]:
+                    self.blip_initialized = False
+                    return False
+            finally:
+                # Disable the alarm in case of exception
+                signal.alarm(0)
+                
         except Exception as e:
             logger.error(f"Error loading BLIP model: {str(e)}")
+            logger.error(traceback.format_exc())
             return False
     
     def _load_breed_features(self):
@@ -435,10 +502,30 @@ class DogBreedVLM:
     
     def answer_visual_query(self, query, image):
         """Answer a visual question directly using the BLIP model."""
+        # Get deployment settings if available
+        try:
+            from deployment_config import get_deployment_settings
+            settings = get_deployment_settings()
+        except ImportError:
+            settings = {
+                "blip_max_length": 100,
+                "enable_fallbacks": True
+            }
+            
         # Lazy load BLIP if not already initialized
         if not self.blip_initialized:
             if not self._load_blip_model():
-                return "I'm sorry, I couldn't access my visual understanding capabilities to answer that question."
+                # BLIP failed to load - use fallback
+                logger.warning("BLIP model failed to load - using visual feature fallback")
+                visual_features = self._extract_visual_features(image)
+                
+                query_lower = query.lower()
+                if 'color' in query_lower:
+                    return f"This dog's coat is {visual_features.get('colors', 'varied in color')}."
+                elif 'appearance' in query_lower or 'look' in query_lower:
+                    return f"This dog has {visual_features.get('appearance', 'standard features')}."
+                else:
+                    return f"I can see a dog with {visual_features.get('colors', 'varied coloring')} and {visual_features.get('appearance', 'standard proportions')}."
         
         try:
             # Debug logging
@@ -449,79 +536,114 @@ class DogBreedVLM:
             
             # Color-related questions
             if any(pattern in query_lower for pattern in ['what color', 'what colours', 'what is the color', 'color of the dog', 'dog\'s color']):
-                # Direct color question
-                specific_query = "What specific colors and patterns can you see in this dog's coat?"
+                # First try to extract direct visual features as a backup plan
+                visual_features = self._extract_visual_features(image)
+                color_fallback = visual_features.get('colors', 'varied in color')
                 
-                # Process with BLIP
-                inputs = self.blip_processor(image, specific_query, return_tensors="pt")
-                with torch.no_grad():
-                    outputs = self.blip_model.generate(**inputs, max_length=100)
-                color_answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
-                
-                if not color_answer or color_answer.strip() in ["", ".", "?", "unknown", "not sure"]:
-                    # Try for a more general color observation
-                    color_query2 = "What color is this dog?"
-                    inputs = self.blip_processor(image, color_query2, return_tensors="pt")
-                    with torch.no_grad():
-                        outputs = self.blip_model.generate(**inputs, max_length=100)
-                    color_answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
+                # Process with BLIP model
+                try:
+                    # Use multiple targeted questions to get consistent results
+                    color_prompts = [
+                        "What color is this dog?",
+                        "What is the coat color of this dog?",
+                        "Describe the color of this dog's fur."
+                    ]
                     
-                    if not color_answer or color_answer.strip() in ["", ".", "?", "unknown", "not sure"]:
-                        return "I can see a dog in the image, but I cannot precisely determine its color from this specific image."
-                
-                # Format the response
-                if not color_answer.lower().startswith("this dog") and not color_answer.lower().startswith("the dog"):
-                    return f"This dog's coat is {color_answer}"
-                return color_answer
+                    color_answers = []
+                    for prompt in color_prompts:
+                        answer = self._process_visual_query(image, prompt)
+                        if answer and answer.lower() not in ["i don't know", "unknown", "i do not know"]:
+                            color_answers.append(answer)
+                    
+                    if color_answers:
+                        # Get the most informative answer
+                        color_answers.sort(key=lambda x: len(x), reverse=True)
+                        color_answer = color_answers[0]
+                        
+                        # Format response consistently
+                        if not color_answer.startswith("This dog"):
+                            color_answer = f"This dog's coat is {color_answer.lower()}."
+                        
+                        return color_answer
+                    else:
+                        return f"This dog's coat is {color_fallback}."
+                    
+                except Exception as e:
+                    logger.error(f"Error in color detection: {str(e)}")
+                    return f"This dog's coat is {color_fallback}."
             
             # Appearance-related questions
-            elif any(pattern in query_lower for pattern in ['how does', 'what does', 'look like', 'appearance', 'how is']):
-                # Direct appearance description
-                specific_query = "Describe exactly what you see in this specific dog image, including its appearance, posture, and visible features."
-                
-                # Process with BLIP
-                inputs = self.blip_processor(image, specific_query, return_tensors="pt")
-                with torch.no_grad():
-                    outputs = self.blip_model.generate(**inputs, max_length=150)
-                appearance_answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
-                
-                if not appearance_answer or appearance_answer.strip() in ["", ".", "?", "unknown", "not sure"]:
-                    # Try a simpler appearance question
-                    appearance_query2 = "Describe this dog's appearance."
-                    inputs = self.blip_processor(image, appearance_query2, return_tensors="pt")
-                    with torch.no_grad():
-                        outputs = self.blip_model.generate(**inputs, max_length=150)
-                    appearance_answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
-                    
-                    if not appearance_answer or appearance_answer.strip() in ["", ".", "?", "unknown", "not sure"]:
-                        return "I can see a dog in the image, but I cannot provide a detailed description from this specific angle/image."
-                
-                # Make sure the response describes THIS dog, not the breed
-                if "typically" in appearance_answer.lower() or "breed" in appearance_answer.lower():
-                    # It's describing the breed generally, not this specific dog
-                    visual_features = self._extract_visual_features(image)
-                    return f"In this specific image, I can see a dog with {visual_features.get('colors', 'varied coloring')} and {visual_features.get('appearance', 'standard proportions')}."
-                
-                return appearance_answer
-                
-            # Default BLIP processing for other visual questions
-            inputs = self.blip_processor(image, query, return_tensors="pt")
-            with torch.no_grad():
-                outputs = self.blip_model.generate(**inputs, max_length=100)
-            answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
-            
-            # If BLIP gives a non-specific or breed-related answer
-            if answer.strip() in ["", ".", "?", "unknown", "not sure"] or "breed" in answer.lower():
-                # Try a direct descriptor observation
+            elif any(pattern in query_lower for pattern in ['what does', 'appearance', 'look like', 'describe']):
+                # First extract direct visual features as a backup plan
                 visual_features = self._extract_visual_features(image)
-                return f"Based on what I can see in this specific image, this dog has {visual_features.get('colors', 'varied coloring')} and {visual_features.get('appearance', 'standard proportions')}."
+                appearance_fallback = f"{visual_features.get('colors', 'colored')} with {visual_features.get('appearance', 'standard proportions')}"
                 
-            return answer
+                try:
+                    # Use multiple targeted questions
+                    appearance_prompts = [
+                        "Describe the appearance of this dog.",
+                        "What does this dog look like?",
+                        "Describe the physical features of this dog."
+                    ]
+                    
+                    appearance_answers = []
+                    for prompt in appearance_prompts:
+                        answer = self._process_visual_query(image, prompt)
+                        if answer and answer.lower() not in ["i don't know", "unknown", "i do not know"]:
+                            appearance_answers.append(answer)
+                    
+                    if appearance_answers:
+                        # Get the most informative answer
+                        appearance_answers.sort(key=lambda x: len(x), reverse=True)
+                        appearance_answer = appearance_answers[0]
+                        
+                        # Make sure the response describes THIS dog, not the breed
+                        if "typically" in appearance_answer.lower() or "breed" in appearance_answer.lower():
+                            # It's describing the breed generally, not this specific dog
+                            return f"In this specific image, I can see a dog with {appearance_fallback}."
+                        
+                        return appearance_answer
+                    else:
+                        return f"This dog has {appearance_fallback}."
+                        
+                except Exception as e:
+                    logger.error(f"Error in appearance detection: {str(e)}")
+                    return f"This dog has {appearance_fallback}."
             
-        except Exception as e:
-            logger.error(f"Error in BLIP model: {str(e)}")
+            # Default BLIP processing for other visual questions
+            try:
+                inputs = self.blip_processor(image, query, return_tensors="pt")
+                with torch.no_grad():
+                    outputs = self.blip_model.generate(**inputs, max_length=settings.get("blip_max_length", 100))
+                answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
+                
+                # If BLIP gives a non-specific or breed-related answer
+                if answer.strip() in ["", ".", "?", "unknown", "not sure"] or "breed" in answer.lower():
+                    # Try a direct descriptor observation
+                    visual_features = self._extract_visual_features(image)
+                    return f"Based on what I can see in this specific image, this dog has {visual_features.get('colors', 'varied coloring')} and {visual_features.get('appearance', 'standard proportions')}."
+                    
+                return answer
+                
+            except Exception as blip_error:
+                # BLIP processing failed, use the fallback
+                logger.error(f"Error in BLIP processing: {str(blip_error)}")
+                logger.error(traceback.format_exc())
+                
+                # Extract basic visual features as fallback
+                visual_features = self._extract_visual_features(image)
+                return f"Based on the image, I can see that this dog has {visual_features.get('colors', 'varied coloring')} and {visual_features.get('appearance', 'standard proportions')}."
+                
+        except Exception as outer_error:
+            logger.error(f"Error in visual query processing: {str(outer_error)}")
             logger.error(traceback.format_exc())
-            return "I'm having trouble analyzing the visual details in this image."
+            
+            # Last resort fallback
+            try:
+                visual_features = self._extract_visual_features(image)
+                return f"I'm having trouble with detailed analysis, but I can see a dog with {visual_features.get('colors', 'varied coloring')}."
+            except:
+                return "I'm having trouble analyzing the visual details in this image."
     
     def _extract_visual_features(self, image):
         """Extract basic visual features from image using simple analysis."""
@@ -728,6 +850,75 @@ class DogBreedVLM:
                 "colors": "Unknown",
                 "appearance": "Could not determine"
             }
+
+    def _process_visual_query(self, image, query):
+        """Process a single visual query with proper error handling.
+        
+        Args:
+            image: The image to analyze
+            query: The specific query to process
+            
+        Returns:
+            The response text or None if processing failed
+        """
+        try:
+            # Get deployment settings if available
+            try:
+                from deployment_config import get_deployment_settings
+                settings = get_deployment_settings()
+            except ImportError:
+                settings = {
+                    "blip_max_length": 100
+                }
+                
+            # Ensure BLIP is initialized
+            if not self.blip_initialized:
+                if not self._load_blip_model():
+                    return None
+                    
+            # Process with BLIP
+            inputs = self.blip_processor(image, query, return_tensors="pt")
+            
+            # Set timeout for model inference
+            import signal
+            
+            class TimeoutException(Exception):
+                pass
+            
+            def timeout_handler(signum, frame):
+                raise TimeoutException("BLIP inference timed out")
+            
+            # Register handler and set timeout (shorter for inference)
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(10)  # 10 second timeout for inference
+            
+            try:
+                # Run model inference with timeout
+                with torch.no_grad():
+                    outputs = self.blip_model.generate(
+                        **inputs, 
+                        max_length=settings.get("blip_max_length", 100)
+                    )
+                answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
+                
+                # Disable timeout
+                signal.alarm(0)
+                
+                # Basic validation of answer
+                if answer and answer.strip() not in ["", ".", "?", "unknown", "not sure"]:
+                    return answer
+                return None
+                
+            except TimeoutException:
+                logger.warning(f"BLIP inference timed out for query: {query}")
+                return None
+            finally:
+                # Ensure timeout is disabled
+                signal.alarm(0)
+                
+        except Exception as e:
+            logger.error(f"Error processing visual query '{query}': {str(e)}")
+            return None
 
 def main():
     """Test function to demonstrate VLM functionality."""

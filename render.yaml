@@ -6,7 +6,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT
+    startCommand: gunicorn main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT --timeout 120 --workers 1
     envVars:
       - key: PORT
         value: 8000
@@ -14,6 +14,12 @@ services:
         value: https://pawsense-ui.onrender.com
       - key: MODEL_PATH
         value: models/breed_model/mobilenetv2_dogbreeds.pth
+      - key: RENDER
+        value: "true"
+      - key: PYTHONUNBUFFERED
+        value: "true"
+      - key: TRANSFORMERS_CACHE
+        value: /tmp/transformers_cache
     healthCheckPath: /api/health
 
   # Frontend service

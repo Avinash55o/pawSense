@@ -25,10 +25,10 @@ The project consists of two main components:
 
 ## Deployment
 
-The application is deployed on Railway, with separate services for:
+The application is deployed on Render, with separate services for:
 
-- **Frontend**: https://pawsense-frontend-production.up.railway.app
-- **Backend**: https://pawsense-backend-production.up.railway.app
+- **Frontend**: https://pawsense-ui.onrender.com
+- **Backend**: https://pawsense-api.onrender.com
 
 ## Local Development
 
