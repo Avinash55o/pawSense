@@ -27,7 +27,7 @@ The project consists of two main components:
 
 The application is deployed on Render, with separate services for:
 
-- **Frontend**: https://pawsense-ui.onrender.com
+- **Frontend**: https://pawsense-model-avinash.onrender.com
 - **Backend**: https://pawsense-api.onrender.com
 
 ## Local Development

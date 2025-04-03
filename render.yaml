@@ -11,7 +11,7 @@ services:
       - key: PORT
         value: 8000
       - key: ALLOWED_ORIGINS
-        value: https://pawsense-ui.onrender.com
+        value: https://pawsense-model-avinash.onrender.com
       - key: MODEL_PATH
         value: models/breed_model/mobilenetv2_dogbreeds.pth
       - key: RENDER
@@ -24,7 +24,7 @@ services:
 
   # Frontend service
   - type: web
-    name: pawsense-ui
+    name: pawsense-model-avinash
     runtime: node
     plan: free
     rootDir: frontend
