@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+@layer base {
+  :root {
+    /* Joyful, Minimalist Light Theme */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 357 85% 67%;  /* Coral Red - energetic, playful */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 174 75% 75%; /* Aquamarine - fresh, calming */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 42 94% 69%; /* Mustard Yellow - cheerful */
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 357 85% 67%;
+    --chart-1: 357 85% 67%;
+    --chart-2: 174 75% 75%;
+    --chart-3: 42 94% 69%;
+    --chart-4: 195 83% 58%;
+    --chart-5: 152 76% 50%;
+    --radius: 0.75rem;
+  }
+  .dark {
+    /* Joyful, Minimalist Dark Theme */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 357 85% 67%; /* Coral Red */
+    --primary-foreground: 222 47% 11%;
+    --secondary: 174 75% 55%; /* Darker Aquamarine */
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 42 94% 65%; /* Darker Mustard Yellow */
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 357 85% 67%;
+    --chart-1: 357 85% 67%;
+    --chart-2: 174 75% 55%;
+    --chart-3: 42 94% 65%;
+    --chart-4: 195 83% 48%;
+    --chart-5: 152 76% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
