@@ -1,0 +1,13 @@
+[build]
+builder = "NIXPACKS"
+
+[services]
+  [[services.backend]]
+  name = "backend"
+  path = "backend"
+  startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+  [[services.frontend]]
+  name = "frontend"
+  path = "frontend"
+  startCommand = "npm start"  # or the command you use to start your frontend
