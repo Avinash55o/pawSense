@@ -1,0 +1,13 @@
+fastapi==0.109.1
+uvicorn==0.27.0
+python-multipart==0.0.9
+pillow==10.2.0
+torch==2.2.0
+torchvision==0.17.0
+numpy==1.26.4
+python-dotenv==1.0.1
+requests==2.31.0
+aiofiles==23.2.1
+openvino==2024.1.0
+transformers==4.36.2
+timm==0.9.7

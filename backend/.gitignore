@@ -1,0 +1,44 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+.env
+ENV/
+
+# Large dataset files (optional: consider git-lfs for these)
+datasets/train/
+
+# Large model files (optional: consider git-lfs for these)
+
+models/breed_model/*.bin
+models/breed_model/*.xml
+models/breed_model/*.onnx
+# Only include the PyTorch weights which are essential
+models/breed_model/mobilenetv2_dogbreeds.pth
+
+# Local development settings
+.idea/
+.vscode/
+
+# Log files
+*.log
+
+# Temporarily generated files
+temp/
+tmp/
+
+# Docker generated files
+.dockerignore
+Dockerfile.*
+
+# Environment configurations
+.python-version
+.env*
+
+# OS specific files
+.DS_Store
+Thumbs.db 
