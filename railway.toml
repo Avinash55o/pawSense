@@ -10,4 +10,4 @@ builder = "NIXPACKS"
   [[services.frontend]]
   name = "frontend"
   path = "frontend"
-  startCommand = "npm start"  # or the command you use to start your frontend
+  startCommand = "npm start"  # Adjust if you use a different command to start your frontend
