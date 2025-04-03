@@ -1,0 +1,42 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+venv/
+env/
+.env
+
+# Development and utility scripts (not needed at runtime)
+convert_to_ir.py
+optimize_model.py
+train_model.py
+app.py
+qa_handler.py
+breed_identifier.py
+
+# Empty files
+cmake
+
+# Git files
+.git
+.gitignore
+
+# Large data directories (except specific files we need)
+datasets/train/
+models/breed_model/dog_breeds.*
+models/breed_model/*.bin
+models/breed_model/*.xml
+models/breed_model/*.onnx
+
+# Log files
+*.log
+
+# Local development files
+.vscode/
+.idea/
+
+# Test files
+test/
+tests/ 
