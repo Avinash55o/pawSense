@@ -358,8 +358,8 @@ async def analyze_visuals(
         except Exception as pred_error:
             logger.error(f"Could not get predictions during visual analysis: {str(pred_error)}")
         
-        return results
-            except Exception as e:
+          return results
+    except Exception as e:
         logger.error(f"Error analyzing image: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
