@@ -4,8 +4,8 @@ gunicorn==21.2.0
 python-multipart==0.0.9
 pillow==10.2.0
 # Use CPU-only PyTorch to reduce image size and memory usage
-torch==2.2.0+cpu
-torchvision==0.17.0+cpu
+torch==2.0.1+cpu
+torchvision==0.15.2+cpu
 -f https://download.pytorch.org/whl/torch_stable.html
 numpy==1.26.4
 python-dotenv==1.0.1
@@ -14,3 +14,4 @@ aiofiles==23.2.1
 openvino==2024.1.0
 transformers==4.36.2
 timm==0.9.7
+psutil==5.9.8

@@ -166,35 +166,87 @@ def post_process_results(output: torch.Tensor) -> list:
 @app.post("/api/classification/predict")
 async def analyze_image(file: UploadFile = File(...)):
     try:
-        # Read image
-        contents = await file.read()
-        image = Image.open(io.BytesIO(contents))
+        logger.info(f"Received image analysis request for file: {file.filename}")
+        start_time = time.time()
+        
+        # Check if model is loaded
+        if model is None:
+            logger.error("Model not loaded. Cannot process image.")
+            return {
+                "success": False,
+                "error": "Model not available at this time. Please try again later."
+            }
+            
+        # Read image with proper error handling
+        try:
+            contents = await file.read()
+            image = Image.open(io.BytesIO(contents))
+        except Exception as img_error:
+            logger.error(f"Error reading uploaded image: {str(img_error)}")
+            return {
+                "success": False,
+                "error": f"Could not read uploaded image: {str(img_error)}"
+            }
         
         # Ensure image is in RGB format (important for WebP images)
-        if image.format == 'WEBP' or image.mode != 'RGB':
-            image = image.convert('RGB')
+        try:
+            if image.format == 'WEBP' or image.mode != 'RGB':
+                image = image.convert('RGB')
+        except Exception as convert_error:
+            logger.error(f"Error converting image to RGB: {str(convert_error)}")
+            return {
+                "success": False,
+                "error": f"Could not process image format: {str(convert_error)}"
+            }
         
         # Preprocess image
-        input_tensor = preprocess_image(image)
+        try:
+            input_tensor = preprocess_image(image)
+        except Exception as preprocess_error:
+            logger.error(f"Error preprocessing image: {str(preprocess_error)}")
+            return {
+                "success": False,
+                "error": f"Error preparing image for analysis: {str(preprocess_error)}"
+            }
         
         # Get prediction with PyTorch model
-        with torch.no_grad():
-            output = model(input_tensor)
+        try:
+            with torch.no_grad():
+                output = model(input_tensor)
+        except Exception as model_error:
+            logger.error(f"Error during model inference: {str(model_error)}")
+            logger.error(traceback.format_exc())
+            return {
+                "success": False,
+                "error": f"Error analyzing image with model: {str(model_error)}"
+            }
         
         # Post-process results
-        predictions = post_process_results(output)
+        try:
+            predictions = post_process_results(output)
+        except Exception as postprocess_error:
+            logger.error(f"Error post-processing results: {str(postprocess_error)}")
+            return {
+                "success": False,
+                "error": f"Error processing model results: {str(postprocess_error)}"
+            }
+        
+        # Log success and timing
+        processing_time = time.time() - start_time
+        logger.info(f"Image analyzed successfully in {processing_time:.2f} seconds")
         
         return {
             "success": True,
-            "predictions": predictions
+            "predictions": predictions,
+            "processing_time": f"{processing_time:.2f} seconds"
         }
         
     except Exception as e:
-        logger.error(f"Error processing image: {str(e)}")
+        logger.error(f"Unexpected error processing image: {str(e)}")
         logger.error(traceback.format_exc())
         return {
             "success": False,
-            "error": str(e)
+            "error": f"An unexpected error occurred: {str(e)}"
         }
 
 @app.post("/api/vision-language/analyze")
@@ -469,4 +521,82 @@ async def visual_reasoning(file: UploadFile = File(...)):
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint for Render."""
-    return {"status": "healthy"} 
+    return {"status": "healthy"}
+
+@app.get("/api/diagnostics")
+async def run_diagnostics():
+    """Diagnostic endpoint to check model loading status and system resources."""
+    import gc
+    import psutil
+    import sys
+    import platform
+    
+    try:
+        process = psutil.Process()
+        
+        # Get model status
+        model_status = {
+            "main_model_loaded": model is not None,
+            "vlm_initialized": vlm is not None if 'vlm' in globals() else False,
+            "qa_model_initialized": general_qa_model is not None if 'general_qa_model' in globals() else False,
+        }
+        
+        # Get memory info
+        memory_info = {
+            "process_memory_mb": process.memory_info().rss / (1024 * 1024),
+            "available_system_memory_mb": psutil.virtual_memory().available / (1024 * 1024),
+            "memory_percent": psutil.virtual_memory().percent,
+        }
+        
+        # Python info
+        python_info = {
+            "python_version": platform.python_version(),
+            "platform": platform.platform(),
+            "torch_available": "Yes" if 'torch' in sys.modules else "No",
+            "torch_version": torch.__version__ if 'torch' in sys.modules else "Not loaded",
+            "transformers_version": sys.modules.get('transformers').__version__ if 'transformers' in sys.modules else "Not loaded",
+            "gc_count": gc.get_count(),
+        }
+        
+        # Try to check GPU info if available
+        gpu_info = {}
+        try:
+            if 'torch' in sys.modules and torch.cuda.is_available():
+                gpu_info = {
+                    "cuda_available": True,
+                    "cuda_version": torch.version.cuda,
+                    "device_count": torch.cuda.device_count(),
+                    "current_device": torch.cuda.current_device(),
+                    "device_name": torch.cuda.get_device_name(0),
+                    "memory_allocated_mb": torch.cuda.memory_allocated() / (1024 * 1024),
+                    "memory_reserved_mb": torch.cuda.memory_reserved() / (1024 * 1024),
+                }
+            else:
+                gpu_info = {"cuda_available": False}
+        except Exception as gpu_error:
+            gpu_info = {"cuda_available": False, "error": str(gpu_error)}
+        
+        # Environment variables (redacted for security)
+        env_vars = {
+            "PORT": os.getenv("PORT", "Not set"),
+            "ALLOWED_ORIGINS": os.getenv("ALLOWED_ORIGINS", "Not set"),
+            "MODEL_PATH": os.getenv("MODEL_PATH", "Not set"),
+            "RENDER": os.getenv("RENDER", "Not set"),
+        }
+        
+        return {
+            "status": "ok",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "model_status": model_status,
+            "memory_info": memory_info,
+            "python_info": python_info,
+            "gpu_info": gpu_info,
+            "environment": env_vars,
+        }
+    except Exception as e:
+        logger.error(f"Error in diagnostics: {str(e)}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        } 

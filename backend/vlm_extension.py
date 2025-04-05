@@ -36,8 +36,63 @@ class DogBreedVLM:
         
     def _load_vision_model(self, model_path):
         """Load the vision model that was previously trained."""
-        from main import load_model
-        return load_model()
+        try:
+            logger.info(f"Loading vision model from {model_path}")
+            
+            # Direct loading to avoid circular import with main.py
+            import torch
+            import torch.nn as nn
+            import torchvision.models as models
+            from pathlib import Path
+            
+            # Load PyTorch model
+            pytorch_model = models.mobilenet_v2(pretrained=False)
+            pytorch_model.classifier[1] = nn.Linear(pytorch_model.last_channel, 120)  # 120 breeds
+            
+            # Load trained weights
+            model_path = Path(model_path)
+            if not model_path.exists():
+                logger.error(f"Model file not found: {model_path}")
+                raise FileNotFoundError(f"Model file not found: {model_path}")
+                
+            # Ensure device compatibility
+            if torch.cuda.is_available():
+                logger.info("Using CUDA for model loading")
+                map_location = torch.device('cuda')
+            else:
+                logger.info("Using CPU for model loading")
+                map_location = torch.device('cpu')
+                
+            # Load with error handling
+            try:
+                # Try to load directly
+                pytorch_model.load_state_dict(torch.load(model_path, map_location=map_location))
+            except Exception as direct_load_error:
+                logger.warning(f"Direct load failed: {str(direct_load_error)}, trying alternative loading method")
+                # Try alternative loading method (sometimes needed for cross-platform compatibility)
+                state_dict = torch.load(model_path, map_location=map_location)
+                # Remove 'module.' prefix if it exists (common with DataParallel saved models)
+                new_state_dict = {}
+                for k, v in state_dict.items():
+                    name = k[7:] if k.startswith('module.') else k
+                    new_state_dict[name] = v
+                pytorch_model.load_state_dict(new_state_dict)
+            
+            # Set model to evaluation mode
+            pytorch_model.eval()
+            
+            # Set model to float32 explicitly for compatibility
+            pytorch_model = pytorch_model.float()
+            
+            logger.info("Vision model loaded successfully")
+            return pytorch_model
+            
+        except Exception as e:
+            logger.error(f"Error loading vision model: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Return None instead of raising to allow the app to start
+            # The app will handle None model case in prediction methods
+            return None
     
     def _load_blip_model(self):
         """Lazy initialization of BLIP model for visual understanding."""
@@ -210,36 +265,82 @@ class DogBreedVLM:
     
     def process_image(self, image):
         """Process an image and return breed predictions with descriptions."""
-        from main import preprocess_image, post_process_results
-        
-        # Preprocess image
-        input_tensor = preprocess_image(image)
-        
-        # Get prediction
-        with torch.no_grad():
-            output = self.vision_model(input_tensor)
-        
-        # Post-process results
-        predictions = post_process_results(output)
-        
-        # Add detailed text descriptions
-        for pred in predictions:
-            pred["description"] = self._generate_description(pred)
-            pred["visual_reasoning"] = self._generate_visual_reasoning(pred)
+        try:
+            # Check if the vision model is loaded
+            if self.vision_model is None:
+                logger.error("Vision model is not loaded, cannot process image")
+                return [{"breed": "unknown", "confidence": 0.0, "info": {"description": "Model not available"}}]
+                
+            # Preprocess image directly without importing from main
+            # Convert image to RGB if needed
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+                
+            # Apply the transformations
+            from torchvision import transforms
+            transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
             
-            # Add confidence interpretation
-            if pred["confidence"] > 0.7:
-                confidence_level = "high"
-            elif pred["confidence"] > 0.4:
-                confidence_level = "medium"
-            else:
-                confidence_level = "low"
+            # Apply transformations and add batch dimension
+            input_tensor = transform(image).unsqueeze(0)
             
-            pred["confidence_statement"] = random.choice(self.templates["confidence_levels"][confidence_level]).format(
-                breed=pred["breed"].replace("_", " ").title()
-            )
-        
-        return predictions
+            # Get prediction with error handling
+            try:
+                with torch.no_grad():
+                    output = self.vision_model(input_tensor)
+                    
+                # Post-process results directly without importing
+                # Get probabilities
+                probabilities = torch.nn.functional.softmax(output[0], dim=0)
+                
+                # Get top 5 predictions
+                top5_prob, top5_indices = torch.topk(probabilities, 5)
+                
+                # Process results
+                results = []
+                for idx, prob in zip(top5_indices.tolist(), top5_prob.tolist()):
+                    # Ensure index is within bounds
+                    if idx < len(self.breeds):
+                        breed = self.breeds[idx]
+                        breed_info = get_breed_info(breed)
+                        # Convert to standard Python float
+                        confidence = float(prob)
+                        results.append({
+                            "breed": breed,
+                            "confidence": confidence,
+                            "info": breed_info
+                        })
+                        
+                # Add detailed text descriptions
+                for pred in results:
+                    pred["description"] = self._generate_description(pred)
+                    pred["visual_reasoning"] = self._generate_visual_reasoning(pred)
+                    
+                    # Add confidence interpretation
+                    if pred["confidence"] > 0.7:
+                        confidence_level = "high"
+                    elif pred["confidence"] > 0.4:
+                        confidence_level = "medium"
+                    else:
+                        confidence_level = "low"
+                    
+                    pred["confidence_statement"] = random.choice(self.templates["confidence_levels"][confidence_level]).format(
+                        breed=pred["breed"].replace("_", " ").title()
+                    )
+                
+                return results
+            except Exception as model_error:
+                logger.error(f"Error during model inference: {str(model_error)}")
+                logger.error(traceback.format_exc())
+                return [{"breed": "error", "confidence": 0.0, "info": {"description": f"Error processing image: {str(model_error)}"}}]
+                
+        except Exception as e:
+            logger.error(f"Error in process_image: {str(e)}")
+            logger.error(traceback.format_exc())
+            return [{"breed": "error", "confidence": 0.0, "info": {"description": f"Error processing image: {str(e)}"}}]
     
     def _generate_description(self, prediction):
         """Generate a natural language description for a breed prediction."""
