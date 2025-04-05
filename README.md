@@ -2,10 +2,9 @@
 
 PawSense is an advanced dog breed identification and analysis system that combines image classification with Vision-Language capabilities.
 
+## Demo Video
+
 https://github.com/user-attachments/assets/21673477-c71f-4144-b830-1453eeb99be9
-
-
-
 
 ## Key Features
 
@@ -28,6 +27,12 @@ The project consists of two main components:
   - Clean, responsive interface
   - Real-time analysis
   - Multiple viewing modes for different types of analysis
+
+## Workflow
+
+Below is the workflow diagram showing how data flows through the application:
+
+![Application Workflow](https://github.com/user-attachments/assets/19da521d-6cad-4d43-b557-20df6db2248c)
 
 ## Deployment
 
@@ -80,4 +85,3 @@ docker run -p 3000:3000 -e BACKEND_URL=http://localhost:8000 pawsense-frontend
 
 - **Backend**: FastAPI, PyTorch, OpenVINO, BLIP, Transformers
 - **Frontend**: Next.js, React, Tailwind CSS, Shadcn UI
-![Screenshot 2025-04-05 155849](https://github.com/user-attachments/assets/19da521d-6cad-4d43-b557-20df6db2248c)
