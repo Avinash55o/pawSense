@@ -3,6 +3,7 @@
 PawSense is an advanced dog breed identification and analysis system that combines image classification with Vision-Language capabilities.
 
 https://github.com/user-attachments/assets/21673477-c71f-4144-b830-1453eeb99be9
+![Screenshot 2025-04-05 155849](https://github.com/user-attachments/assets/19da521d-6cad-4d43-b557-20df6db2248c)
 
 
 
