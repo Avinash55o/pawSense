@@ -189,7 +189,7 @@ async def analyze_image(file: UploadFile = File(...)):
             "predictions": predictions
         }
         
-        except Exception as e:
+    except Exception as e:
         logger.error(f"Error processing image: {str(e)}")
         logger.error(traceback.format_exc())
         return {
@@ -236,7 +236,7 @@ async def analyze_with_vlm(
             "colors": visual_details.get("colors", ""),
             "detailed_appearance": visual_details.get("detailed_appearance", "")
         }
-        except Exception as e:
+     except Exception as e:
         logger.error(f"Error in VLM analysis: {str(e)}")
         logger.error(traceback.format_exc())
         return {
@@ -377,7 +377,7 @@ async def general_dog_question(query: str = Form(...)):
             "response": response
         }
         
-        except Exception as e:
+    except Exception as e:
         logger.error(f"Error processing general question: {str(e)}")
         logger.error(traceback.format_exc())
         return {
