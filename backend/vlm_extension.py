@@ -58,6 +58,7 @@ class DogBreedVLM:
             logger.info("Loading BLIP model for enhanced visual understanding...")
             model_name = settings["blip_model"]
             
+            # Set a timeout for model loading
             import signal
             
             class TimeoutException(Exception):
@@ -66,41 +67,43 @@ class DogBreedVLM:
             def timeout_handler(signum, frame):
                 raise TimeoutException("Model loading timed out")
             
+            # Register the signal function handler
             signal.signal(signal.SIGALRM, timeout_handler)
             
-        
+            # Set the timeout
             signal.alarm(settings["model_load_timeout"])
             
             try:
+                # Import necessary modules only when needed
                 import gc
                 import torch
                 from transformers import BlipProcessor, BlipForQuestionAnswering
                 
-             
+                # Force garbage collection before loading model
                 gc.collect()
                 if torch.cuda.is_available() and not settings["use_cpu_for_blip"]:
                     torch.cuda.empty_cache()
                 
-               
+                # Load the processor and model
                 self.blip_processor = BlipProcessor.from_pretrained(model_name)
                 
-          
+                # Determine device
                 device = "cpu" if settings["use_cpu_for_blip"] else "cuda" if torch.cuda.is_available() else "cpu"
                 logger.info(f"Loading BLIP model on {device}")
                 
-          
+                # Load model with specific device
                 self.blip_model = BlipForQuestionAnswering.from_pretrained(
                     model_name,
                     device_map=device,
                     low_cpu_mem_usage=True
                 )
                 
-             
+                # Set model to evaluation mode
                 self.blip_model.eval()
                 self.blip_initialized = True
                 logger.info("BLIP model loaded successfully")
                 
-               
+                # Disable the alarm
                 signal.alarm(0)
                 return True
                 
@@ -110,7 +113,7 @@ class DogBreedVLM:
                     self.blip_initialized = False
                     return False
             finally:
-          
+                # Disable the alarm in case of exception
                 signal.alarm(0)
                 
         except Exception as e:
@@ -131,7 +134,7 @@ class DogBreedVLM:
             "scottish_deerhound": ["rough coat", "tall and lean body", "long legs", "gentle expression"]
         }
         
-       
+        # Generate generic features for other breeds
         for breed in self.breeds:
             if breed not in features:
                 breed_name = breed.replace("_", " ")
@@ -209,21 +212,22 @@ class DogBreedVLM:
         """Process an image and return breed predictions with descriptions."""
         from main import preprocess_image, post_process_results
         
-  
+        # Preprocess image
         input_tensor = preprocess_image(image)
         
-     
+        # Get prediction
         with torch.no_grad():
             output = self.vision_model(input_tensor)
-    
+        
+        # Post-process results
         predictions = post_process_results(output)
         
-       
+        # Add detailed text descriptions
         for pred in predictions:
             pred["description"] = self._generate_description(pred)
             pred["visual_reasoning"] = self._generate_visual_reasoning(pred)
             
-    
+            # Add confidence interpretation
             if pred["confidence"] > 0.7:
                 confidence_level = "high"
             elif pred["confidence"] > 0.4:
@@ -244,16 +248,16 @@ class DogBreedVLM:
         breed = prediction["breed"].replace("_", " ").title()
         info = prediction["info"]
         
-    
+        # Select a random template
         template = random.choice(self.templates["breed_description"])
         
-       
+        # Get key characteristics for this breed
         characteristic = "being " + " and ".join(info["characteristics"][:2]).lower()
         
-     
+        # Additional breed information
         breed_info = info.get("description", f"They are {info['size']} dogs with {info['energy_level'].lower()} energy levels.")
         
-     
+        # Fill in the template
         description = template.format(
             breed=breed,
             characteristic=characteristic,
@@ -271,20 +275,20 @@ class DogBreedVLM:
         breed = prediction["breed"]
         breed_name = breed.replace("_", " ").title()
         
-      
+        # Get visual features for this breed
         if breed in self.breed_features:
             features = self.breed_features[breed]
         else:
-            
+            # Fallback for breeds without specific features
             features = ["distinctive appearance", "characteristic body structure", "typical coat pattern"]
         
-       
+        # Select a random template for visual reasoning
         template = random.choice(self.templates["visual_reasoning"])
         
-       
+        # Randomly select features to highlight (without repeating)
         selected_features = random.sample(features, min(3, len(features)))
         
-       
+        # Fill in the template
         reasoning = template.format(
             breed=breed_name,
             feature1=selected_features[0],
@@ -303,41 +307,41 @@ class DogBreedVLM:
         """
         query = query.lower()
         
-       
+        # Check if this is a visual-focused question that should use BLIP
         if self._is_visual_question(query):
-           
+            # If we have an image directly, use it
             if isinstance(image_or_predictions, Image.Image):
                 return self.answer_visual_query(query, image_or_predictions)
-          
+            # Otherwise try to get the image from the prediction
             else:
-                from main import get_image_for_prediction 
+                from main import get_image_for_prediction  # This needs to be implemented
                 try:
-                   
+                    # Try to get the processed image
                     image = get_image_for_prediction()
                     if image:
                         return self.answer_visual_query(query, image)
                 except:
-                    pass  
+                    pass  # Fall back to regular processing if image retrieval fails
         
-       
+        # Get predictions if an image was passed
         predictions = []
         if isinstance(image_or_predictions, Image.Image):
             predictions = self.process_image(image_or_predictions)
         else:
             predictions = image_or_predictions
         
-       
+        # Make sure we have at least one prediction
         if not predictions or len(predictions) == 0:
             return "I don't see a recognizable dog breed in this image to answer your question."
         
-      
+        # Proceed with top prediction
         top_breed = predictions[0]
         breed_name = top_breed["breed"].replace("_", " ").title()
         
-      
+        # Extract the breed info
         info = top_breed["info"]
         
-    
+        # Identify query type
         if re.search(r'\b(size|how big|how large|how small)\b', query):
             response = self.templates["query_responses"]["size"].format(
                 breed=breed_name, 
@@ -373,7 +377,7 @@ class DogBreedVLM:
             )
             
         elif re.search(r'\b(look|appearance|coat|color|fur|physical)\b', query):
-         
+            # Check if we have appearance information
             if "appearance" in info:
                 appearance = info["appearance"]
             else:
@@ -385,7 +389,7 @@ class DogBreedVLM:
             )
             
         elif re.search(r'\b(origin|history|come from|developed|bred)\b', query):
-           
+            # Check if we have origin information
             if "origin" in info and "purpose" in info:
                 response = self.templates["query_responses"]["origin"].format(
                     breed=breed_name,
@@ -396,7 +400,7 @@ class DogBreedVLM:
                 response = f"I don't have detailed information about the origin of the {breed_name} in my database."
             
         elif re.search(r'\b(life|lifespan|longevity|live|age)\b', query):
-            
+            # Check if we have lifespan information
             if "lifespan" in info:
                 response = self.templates["query_responses"]["lifespan"].format(
                     breed=breed_name,
@@ -406,11 +410,11 @@ class DogBreedVLM:
                 response = f"I don't have specific lifespan information for the {breed_name} in my database."
             
         elif re.search(r'\b(compare|difference|similar|vs|versus)\b', query):
-           
+            # Find the second highest prediction for comparison
             if len(predictions) > 1:
                 similar_breed = predictions[1]["breed"].replace("_", " ").title()
                 
-               
+                # Get distinguishing features between top two breeds
                 top_breed_features = self.breed_features.get(top_breed["breed"], ["distinctive appearance"])[0]
                 
                 response = random.choice(self.templates["comparison"]).format(
@@ -422,15 +426,15 @@ class DogBreedVLM:
                 response = f"This is clearly a {breed_name} and doesn't look similar to other breeds in my database."
                 
         elif re.search(r'\b(why|how can you tell|identify|recognize)\b', query):
-            
+            # Visual reasoning explanation
             response = top_breed.get("visual_reasoning", f"I identified this as a {breed_name} based on its distinctive features.")
             
         elif re.search(r'\b(confidence|sure|certain)\b', query):
-           
+            # Explain confidence level
             response = top_breed.get("confidence_statement", f"I'm {top_breed['confidence']:.1%} confident this is a {breed_name}.")
         
         else:
-            
+            # General response for unknown query types
             response = f"This appears to be a {breed_name}. " + random.choice(self.templates["general_unknown"])
         
         return response
@@ -446,7 +450,7 @@ class DogBreedVLM:
         top_name = top_breed["breed"].replace("_", " ").title()
         second_name = second_breed["breed"].replace("_", " ").title()
         
-       
+        # Get distinguishing features
         if top_breed["breed"] in self.breed_features:
             top_features = self.breed_features[top_breed["breed"]][:2]
         else:
@@ -454,7 +458,7 @@ class DogBreedVLM:
             
         top_feature_str = " and ".join(top_features)
         
-        
+        # Calculate confidence difference
         conf_diff = top_breed["confidence"] - second_breed["confidence"]
         conf_percent = int(conf_diff * 100)
         
@@ -473,7 +477,7 @@ class DogBreedVLM:
         """Determine if a query is asking about visual aspects of the image."""
         query = query.lower()
         
-       
+        # Check for direct visual question patterns
         visual_patterns = [
             r"(what|how).*(color|colour)",
             r"(what|how).*(look|appear)",
@@ -488,7 +492,7 @@ class DogBreedVLM:
             if re.search(pattern, query):
                 return True
             
-        
+        # Also check for basic visual question keywords
         visual_keywords = ["see", "look", "color", "colour", "show", "picture", "image", "photo", "spotted", "markings", "black", "white", "brown", "gray", "red"]
         for keyword in visual_keywords:
             if keyword in query:
@@ -498,7 +502,7 @@ class DogBreedVLM:
     
     def answer_visual_query(self, query, image):
         """Answer a visual question directly using the BLIP model."""
-      
+        # Get deployment settings if available
         try:
             from deployment_config import get_deployment_settings
             settings = get_deployment_settings()
@@ -705,17 +709,17 @@ class DogBreedVLM:
                 if not color_description:
                     color_description = "varied colors"
                     
-                
+                # Basic appearance features based on image analysis
                 appearance_features = []
                 
-              
+                # Calculate aspect ratio for rough body shape
                 aspect_ratio = width / height
                 if aspect_ratio > 1.5:
                     appearance_features.append("long body")
                 elif aspect_ratio < 0.8:
                     appearance_features.append("tall standing")
                     
-             
+                # Check for potential feature (looking for facial region - simplified)
                 face_region = img_array[:height//3, width//3:2*width//3]
                 face_contrast = np.std(face_region)
                 if face_contrast > 50:
@@ -755,7 +759,7 @@ class DogBreedVLM:
                 "appearance": visual_features.get("appearance", "unknown")
             }
             
-          
+            # Try to get better captions with multiple prompt attempts
             caption_prompts = [
                 "Describe this dog in one sentence.",
                 "What breed of dog is in this image?",
@@ -776,14 +780,14 @@ class DogBreedVLM:
                 if captions:
                     # Use the most informative caption (usually the longest one that's not too long)
                     captions.sort(key=lambda x: len(x), reverse=True)
-                   
+                    # Filter out very long captions (likely errors)
                     valid_captions = [c for c in captions if len(c) < 150]
                     if valid_captions:
                         details["caption"] = valid_captions[0]
                     elif captions:
                         details["caption"] = captions[0]
 
-            
+            # Try to get better colors with multiple prompts
             color_prompts = [
                 "What color is this dog's coat?",
                 "Describe the color of this dog.",
@@ -802,7 +806,7 @@ class DogBreedVLM:
                         logging.error(f"Error getting color with prompt '{prompt}': {str(e)}")
 
                 if colors:
-                  
+                    # Use the most informative color description
                     colors.sort(key=lambda x: len(x), reverse=True)
                     valid_colors = [c for c in colors if len(c) < 100]
                     if valid_colors:
@@ -858,7 +862,7 @@ class DogBreedVLM:
             The response text or None if processing failed
         """
         try:
-        
+            # Get deployment settings if available
             try:
                 from deployment_config import get_deployment_settings
                 settings = get_deployment_settings()
@@ -867,15 +871,15 @@ class DogBreedVLM:
                     "blip_max_length": 100
                 }
                 
-          
+            # Ensure BLIP is initialized
             if not self.blip_initialized:
                 if not self._load_blip_model():
                     return None
                     
-         
+            # Process with BLIP
             inputs = self.blip_processor(image, query, return_tensors="pt")
             
-           
+            # Set timeout for model inference
             import signal
             
             class TimeoutException(Exception):
@@ -884,12 +888,12 @@ class DogBreedVLM:
             def timeout_handler(signum, frame):
                 raise TimeoutException("BLIP inference timed out")
             
-           
+            # Register handler and set timeout (shorter for inference)
             signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(10) 
+            signal.alarm(10)  # 10 second timeout for inference
             
             try:
-              
+                # Run model inference with timeout
                 with torch.no_grad():
                     outputs = self.blip_model.generate(
                         **inputs, 
@@ -897,10 +901,10 @@ class DogBreedVLM:
                     )
                 answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
                 
-               
+                # Disable timeout
                 signal.alarm(0)
                 
-               
+                # Basic validation of answer
                 if answer and answer.strip() not in ["", ".", "?", "unknown", "not sure"]:
                     return answer
                 return None
@@ -909,7 +913,7 @@ class DogBreedVLM:
                 logger.warning(f"BLIP inference timed out for query: {query}")
                 return None
             finally:
-               
+                # Ensure timeout is disabled
                 signal.alarm(0)
                 
         except Exception as e:
@@ -923,11 +927,11 @@ def main():
     
     vlm = DogBreedVLM()
     
- 
+    # Test with a sample image
     sample_path = os.path.join('datasets', 'train', next(os.listdir(os.path.join('datasets', 'train'))))
     sample_image = Image.open(sample_path).convert('RGB')
     
-   
+    # Get predictions with descriptions
     predictions = vlm.process_image(sample_image)
     
     print(f"Detected breed: {predictions[0]['breed']} ({predictions[0]['confidence']:.2%})")
@@ -935,17 +939,17 @@ def main():
     print(f"Visual reasoning: {predictions[0]['visual_reasoning']}")
     print(f"Confidence: {predictions[0]['confidence_statement']}")
     
-   
+    # Test visual reasoning between breeds
     visual_comparison = vlm.visual_reasoning(predictions)
     print(f"\nVisual comparison: {visual_comparison}")
     
-   
+    # Test BLIP visual analysis
     print("\nVisual Analysis:")
     visual_details = vlm.analyze_visual_details(sample_image)
     for key, value in visual_details.items():
         print(f"{key.title()}: {value}")
     
-    
+    # Test query answering
     sample_queries = [
         "How big is this dog breed?",
         "What color is this dog?",
