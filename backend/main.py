@@ -236,7 +236,7 @@ async def analyze_with_vlm(
             "colors": visual_details.get("colors", ""),
             "detailed_appearance": visual_details.get("detailed_appearance", "")
         }
-     except Exception as e:
+    except Exception as e:
         logger.error(f"Error in VLM analysis: {str(e)}")
         logger.error(traceback.format_exc())
         return {
@@ -324,7 +324,7 @@ async def query_about_image(file: UploadFile = File(...), query: str = Form(...)
         logging.info(f"Generated response: {response_text}")
         
         return response
-        except Exception as e:
+    except Exception as e:
         logger.error(f"Error processing query: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
@@ -358,7 +358,7 @@ async def analyze_visuals(
         except Exception as pred_error:
             logger.error(f"Could not get predictions during visual analysis: {str(pred_error)}")
         
-          return results
+        return results
     except Exception as e:
         logger.error(f"Error analyzing image: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
