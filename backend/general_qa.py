@@ -27,7 +27,7 @@ class DogGeneralQA:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             self.model = AutoModelForQuestionAnswering.from_pretrained(model_name)
             
-            # Put in evaluation mode
+      
             self.model.eval()
             
             self.is_initialized = True
@@ -90,10 +90,9 @@ class DogGeneralQA:
             return "I'm sorry, I couldn't load my knowledge base to answer that question."
             
         try:
-            # Use expanded context if breed info provided
             context = self.expand_context(top_breed_info) if top_breed_info else self.context
             
-            # Encode the question and context
+         
             inputs = self.tokenizer.encode_plus(
                 question, 
                 context, 
@@ -106,18 +105,17 @@ class DogGeneralQA:
             with torch.no_grad():
                 outputs = self.model(**inputs)
                 
-            # Get the most likely answer span
             answer_start = torch.argmax(outputs.start_logits)
             answer_end = torch.argmax(outputs.end_logits) + 1
             
-            # Convert token IDs to tokens and join them for the answer
+           
             answer = self.tokenizer.convert_tokens_to_string(
                 self.tokenizer.convert_ids_to_tokens(
                     inputs["input_ids"][0][answer_start:answer_end]
                 )
             )
             
-            # If answer is empty or just punctuation, give a fallback
+
             if not answer or answer.strip() in [".", ",", "?", "!", ""]:
                 return "I don't have specific information to answer that question about dogs."
                 
@@ -134,13 +132,13 @@ class DogGeneralQA:
             'shown breed', 'pictured breed', 'in the picture'
         ]
         
-        # Check if this is likely a general question
+       
         question = question.lower()
         for term in breed_specific_terms:
             if term in question:
                 return False
                 
-        # Check for general dog question patterns
+     
         general_patterns = [
             'all dogs', 'dogs usually', 'most dogs', 'dogs generally',
             'can dogs', 'do dogs', 'why do dogs', 'how do dogs'
@@ -150,10 +148,10 @@ class DogGeneralQA:
             if pattern in question:
                 return True
                 
-        # Default to false if no strong indicators
+        
         return False
 
-# Singleton instance
+
 general_qa = DogGeneralQA()
 
 def get_qa_model():

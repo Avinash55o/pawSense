@@ -195,7 +195,7 @@ export default function Analyzer() {
       formData.append("file", selectedImage);
       formData.append("query", query);
 
-      // Send to the VLM query endpoint - it will handle routing to the appropriate model
+
       const response = await fetch("/api/vision-language/query", {
         method: "POST",
         body: formData,
@@ -207,14 +207,12 @@ export default function Analyzer() {
 
       const data = await response.json();
 
-      // The backend now handles including visual data with responses
-      // Set the results with all the data we received
+     
       setResults((prev) =>
         prev
           ? {
               ...prev,
               queryResponse: data,
-              // Update any visual data that came with the response
               ...(data.caption && { caption: data.caption }),
               ...(data.colors && { colors: data.colors }),
               ...(data.detailed_appearance && {
@@ -224,7 +222,7 @@ export default function Analyzer() {
           : data
       );
 
-      // Clear the query input after submission
+
       setQuery("");
     } catch (error) {
       console.error("Error submitting query:", error);
@@ -259,7 +257,7 @@ export default function Analyzer() {
         return;
       }
 
-      // Create a queryResponse object even for general questions
+      
       setResults((prev) =>
         prev
           ? {

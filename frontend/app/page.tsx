@@ -167,7 +167,7 @@ export default function Home() {
             <p className="text-center text-muted-foreground max-w-md">
               AI-powered dog breed identification with visual reasoning and natural language capabilities
             </p>
-             <Link href="https://avinashboruah.vercel.app/" className='bg-primary hover:bg-primary/90 text-white rounded-full px-4 py-2'>know about auther</Link>
+             <Link href="https://avinashboruah.vercel.app/" className='bg-primary hover:bg-primary/90 text-white rounded-full px-4 py-2'>know about author</Link>
             <div className="mt-4 text-sm text-muted-foreground">
               © 2025 PawSense. All rights reserved.
             </div>
