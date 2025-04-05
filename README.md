@@ -16,6 +16,7 @@ The project consists of two main components:
 - **Backend**: A FastAPI-based Python service that provides the AI capabilities:
   - MobileNetV2-based breed classification
   - BLIP Vision-Language Model for visual understanding
+  - OpenVINO for optimized model inference
   - General dog knowledge Q&A
 
 - **Frontend**: A Next.js application with a modern UI for interacting with the AI:
@@ -75,6 +76,3 @@ docker run -p 3000:3000 -e BACKEND_URL=http://localhost:8000 pawsense-frontend
 - **Backend**: FastAPI, PyTorch, OpenVINO, BLIP, Transformers
 - **Frontend**: Next.js, React, Tailwind CSS, Shadcn UI
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
