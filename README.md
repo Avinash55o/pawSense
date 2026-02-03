@@ -84,4 +84,4 @@ docker run -p 3000:3000 -e BACKEND_URL=http://localhost:8000 pawsense-frontend
 ## Technology Stack
 
 - **Backend**: FastAPI, PyTorch, OpenVINO, BLIP, Transformers
-- **Frontend**: Next.js, React, Tailwind CSS, Shadcn UI
+- **Frontend**: Next.js, Tailwind CSS, Shadcn UI
