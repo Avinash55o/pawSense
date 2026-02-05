@@ -10,7 +10,7 @@ services:
     volumes:
       - ./backend:/app
     networks:
-      - fastclip-network
+      - pawsense-network
 
   frontend:
     build:
@@ -19,10 +19,10 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - fastclip-network
+      - pawsense-network
     depends_on:
       - backend
 
 networks:
-  fastclip-network:
+  pawsense-network:
     driver: bridge

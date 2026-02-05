@@ -3,10 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 import io
 import numpy as np
-import torch
-import torch.nn as nn
-import torchvision.models as models
-from openvino.runtime import Core
 from pathlib import Path
 import logging
 import traceback
@@ -14,7 +10,6 @@ from breed_info import get_breed_info, get_all_breeds
 from typing import Optional, List, Dict, Any, Union
 import time
 import re
-from torchvision import transforms
 from io import BytesIO
 import os
 from dotenv import load_dotenv
@@ -26,6 +21,8 @@ load_dotenv()
 from vlm_extension import DogBreedVLM
 # Import our general QA model
 from general_qa import get_qa_model
+# Import our new pretrained breed classifier
+from models.breed_classifier import get_classifier
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -53,45 +50,22 @@ app.add_middleware(
 )
 
 # Global variables
-model = None
+breed_classifier = None  # Pretrained breed classifier
 vlm = None
 classes = None
 last_processed_image = None  # Store the last processed image
 general_qa_model = None  # Initialize the general_qa_model variable
 
-# Load model
-def load_model():
-    try:
-        logger.info("Loading PyTorch model...")
-        
-        # Get model path from environment or use default
-        model_path = os.getenv("MODEL_PATH", "models/breed_model/mobilenetv2_dogbreeds.pth")
-        
-        # Load PyTorch model
-        pytorch_model = models.mobilenet_v2(pretrained=False)
-        pytorch_model.classifier[1] = nn.Linear(pytorch_model.last_channel, 120)  # 120 breeds
-        
-        # Load trained weights
-        model_path = Path(model_path)
-        logger.info(f"Loading model from: {model_path}")
-        pytorch_model.load_state_dict(torch.load(model_path))
-        pytorch_model.eval()
-        
-        # Set model to float32 explicitly
-        pytorch_model = pytorch_model.float()
-        
-        logger.info("PyTorch model loaded successfully")
-        return pytorch_model
-    except Exception as e:
-        logger.error(f"Error loading model: {str(e)}")
-        logger.error(traceback.format_exc())
-        raise
-
 # Initialize models on startup
 @app.on_event("startup")
 async def startup_event():
-    global model, general_qa_model
-    model = load_model()
+    global breed_classifier, general_qa_model
+    # Get the pretrained classifier instance
+    breed_classifier = get_classifier()
+    # Initialize it lazily (will load on first use)
+    logger.info("Breed classifier ready (will load on first prediction)")
+    
+    # Initialize general QA model
     initialize_general_qa_model()
     logger.info("Application startup complete")
 
@@ -119,49 +93,6 @@ def get_image_for_prediction():
     global last_processed_image
     return last_processed_image
 
-def preprocess_image(image: Image.Image) -> torch.Tensor:
-    """Preprocess an image for the model."""
-    global last_processed_image
-    last_processed_image = image.copy()  # Store a copy of the image for later use
-    
-    # Apply the transformations to the image
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    
-    # Apply transformations and add batch dimension
-    input_tensor = transform(image).unsqueeze(0)
-    
-    return input_tensor
-
-def post_process_results(output: torch.Tensor) -> list:
-    """Post-process model output to get breed predictions."""
-    # Apply softmax to get probabilities
-    probabilities = torch.nn.functional.softmax(output[0], dim=0)
-    
-    # Get top 5 predictions
-    top5_prob, top5_indices = torch.topk(probabilities, 5)
-    
-    # Get breed names
-    breeds = get_all_breeds()
-    results = []
-    
-    for idx, prob in zip(top5_indices.tolist(), top5_prob.tolist()):
-        # Ensure index is within bounds
-        if idx < len(breeds):
-            breed = breeds[idx]
-            breed_info = get_breed_info(breed)
-            # Convert to standard Python float
-            confidence = float(prob)
-            results.append({
-                "breed": breed,
-                "confidence": confidence,
-                "info": breed_info
-            })
-    
-    return results
 
 @app.post("/api/classification/predict")
 async def analyze_image(file: UploadFile = File(...)):
@@ -169,9 +100,9 @@ async def analyze_image(file: UploadFile = File(...)):
         logger.info(f"Received image analysis request for file: {file.filename}")
         start_time = time.time()
         
-        # Check if model is loaded
-        if model is None:
-            logger.error("Model not loaded. Cannot process image.")
+        # Check if classifier is available
+        if breed_classifier is None:
+            logger.error("Breed classifier not loaded. Cannot process image.")
             return {
                 "success": False,
                 "error": "Model not available at this time. Please try again later."
@@ -199,36 +130,44 @@ async def analyze_image(file: UploadFile = File(...)):
                 "error": f"Could not process image format: {str(convert_error)}"
             }
         
-        # Preprocess image
-        try:
-            input_tensor = preprocess_image(image)
-        except Exception as preprocess_error:
-            logger.error(f"Error preprocessing image: {str(preprocess_error)}")
-            return {
-                "success": False,
-                "error": f"Error preparing image for analysis: {str(preprocess_error)}"
-            }
+        # Store the image for later use (for VLM queries)
+        global last_processed_image
+        last_processed_image = image.copy()
         
-        # Get prediction with PyTorch model
+        # Get prediction with pretrained classifier
         try:
-            with torch.no_grad():
-                output = model(input_tensor)
+            # The HuggingFace pipeline handles preprocessing internally
+            raw_predictions = breed_classifier.predict(image)
+            
+            # Convert HuggingFace output to our format
+            predictions = []
+            for pred in raw_predictions:
+                breed_name = pred['label'].lower().replace(' ', '_')
+                # Try to get breed info, fallback to generic if not found
+                try:
+                    breed_info = get_breed_info(breed_name)
+                except:
+                    breed_info = {
+                        "name": pred['label'],
+                        "description": f"A {pred['label']} dog breed.",
+                        "characteristics": ["Loyal", "Intelligent"],
+                        "size": "Medium",
+                        "energy_level": "Medium",
+                        "good_with_children": True
+                    }
+                
+                predictions.append({
+                    "breed": breed_name,
+                    "confidence": float(pred['score']),
+                    "info": breed_info
+                })
+                
         except Exception as model_error:
             logger.error(f"Error during model inference: {str(model_error)}")
             logger.error(traceback.format_exc())
             return {
                 "success": False,
                 "error": f"Error analyzing image with model: {str(model_error)}"
-            }
-        
-        # Post-process results
-        try:
-            predictions = post_process_results(output)
-        except Exception as postprocess_error:
-            logger.error(f"Error post-processing results: {str(postprocess_error)}")
-            return {
-                "success": False,
-                "error": f"Error processing model results: {str(postprocess_error)}"
             }
         
         # Log success and timing
@@ -462,7 +401,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "model_loaded": model is not None,
+        "model_loaded": breed_classifier is not None,
         "vlm_available": get_vlm() is not None
     }
 
@@ -536,7 +475,7 @@ async def run_diagnostics():
         
         # Get model status
         model_status = {
-            "main_model_loaded": model is not None,
+            "main_model_loaded": breed_classifier is not None,
             "vlm_initialized": vlm is not None if 'vlm' in globals() else False,
             "qa_model_initialized": general_qa_model is not None if 'general_qa_model' in globals() else False,
         }
