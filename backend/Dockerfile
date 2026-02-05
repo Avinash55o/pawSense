@@ -5,7 +5,7 @@ LABEL project="PawSense"
 
 WORKDIR /app
 
-# Install system dependencies required for OpenVINO and PIL
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -15,24 +15,21 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy only the necessary files
-COPY main.py .
+# Copy the entire app directory (new structure)
+COPY app/ ./app/
+
+# Copy additional files if needed
 COPY vlm_extension.py .
-COPY breed_info.py .
-COPY general_qa.py .
 
-# Create directory for models
-RUN mkdir -p models/breed_model
+# Create directory for model cache
+RUN mkdir -p /tmp/models
 
-# Copy model files
-COPY models/breed_model/mobilenetv2_dogbreeds.pth models/breed_model/
-
-# Create directory for datasets if needed
-RUN mkdir -p datasets
-COPY datasets/labels.csv datasets/
+# Set environment variables
+ENV MODEL_CACHE_DIR=/tmp/models
+ENV PYTHONUNBUFFERED=1
 
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Command to run the application with new structure
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
