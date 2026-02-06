@@ -192,7 +192,7 @@ export default function Home() {
               natural language capabilities
             </p>
             <Link
-              href="https://avinashboruah.vercel.app/"
+              href="https://avinashboruah.netlify.app/"
               className="bg-gradient-primary hover:opacity-90 text-white rounded-full px-6 py-3 font-semibold transition-smooth shadow-lg hover-lift"
             >
               Know About Author
