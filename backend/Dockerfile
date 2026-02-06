@@ -18,8 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the entire app directory (new structure)
 COPY app/ ./app/
 
-# Copy additional files if needed
+# Copy additional files
 COPY vlm_extension.py .
+COPY download_models.py .
 
 # Create directory for model cache
 RUN mkdir -p /tmp/models
@@ -27,9 +28,14 @@ RUN mkdir -p /tmp/models
 # Set environment variables
 ENV MODEL_CACHE_DIR=/tmp/models
 ENV PYTHONUNBUFFERED=1
+ENV TRANSFORMERS_CACHE=/tmp/models
+
+# Pre-download all models during build (not runtime!)
+# This ensures users don't wait for model downloads
+RUN python3 download_models.py
 
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Command to run the application with new structure
+# Command to run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

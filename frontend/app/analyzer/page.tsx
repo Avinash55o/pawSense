@@ -12,6 +12,9 @@ import {
   Info,
   Loader2,
   Dog,
+  Sparkles,
+  CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
@@ -86,6 +89,7 @@ export default function Analyzer() {
   const [results, setResults] = useState<AnalysisResults | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isVisualLoading, setIsVisualLoading] = useState<boolean>(false);
+  const [currentStep, setCurrentStep] = useState<number>(1);
 
   const getTabConfig = (): TabConfig => {
     switch (analysisType) {
@@ -112,6 +116,7 @@ export default function Analyzer() {
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
+      setCurrentStep(2);
     };
     reader.readAsDataURL(file);
   };
@@ -170,6 +175,7 @@ export default function Analyzer() {
 
       // Set the results directly from the backend response
       setResults(data);
+      setCurrentStep(4);
     } catch (error) {
       console.error("Error analyzing image:", error);
       toast.error("Failed to analyze image. Please try again.");
@@ -195,7 +201,6 @@ export default function Analyzer() {
       formData.append("file", selectedImage);
       formData.append("query", query);
 
-
       const response = await fetch("/api/vision-language/query", {
         method: "POST",
         body: formData,
@@ -207,21 +212,19 @@ export default function Analyzer() {
 
       const data = await response.json();
 
-     
       setResults((prev) =>
         prev
           ? {
-              ...prev,
-              queryResponse: data,
-              ...(data.caption && { caption: data.caption }),
-              ...(data.colors && { colors: data.colors }),
-              ...(data.detailed_appearance && {
-                detailed_appearance: data.detailed_appearance,
-              }),
-            }
+            ...prev,
+            queryResponse: data,
+            ...(data.caption && { caption: data.caption }),
+            ...(data.colors && { colors: data.colors }),
+            ...(data.detailed_appearance && {
+              detailed_appearance: data.detailed_appearance,
+            }),
+          }
           : data
       );
-
 
       setQuery("");
     } catch (error) {
@@ -257,25 +260,24 @@ export default function Analyzer() {
         return;
       }
 
-      
       setResults((prev) =>
         prev
           ? {
-              ...prev,
-              queryResponse: {
-                ...data,
-                is_general_question: true,
-                top_breed: prev.top_breed || "Unknown",
-              },
-            }
+            ...prev,
+            queryResponse: {
+              ...data,
+              is_general_question: true,
+              top_breed: prev.top_breed || "Unknown",
+            },
+          }
           : {
-              success: true,
-              queryResponse: {
-                ...data,
-                is_general_question: true,
-                top_breed: "Unknown",
-              },
-            }
+            success: true,
+            queryResponse: {
+              ...data,
+              is_general_question: true,
+              top_breed: "Unknown",
+            },
+          }
       );
 
       // Clear the query input after submission
@@ -298,498 +300,580 @@ export default function Analyzer() {
     "Why do dogs bark?",
   ];
 
+  const resetWizard = () => {
+    setImagePreview("");
+    setSelectedImage(null);
+    setResults(null);
+    setCurrentStep(1);
+    setAnalysisType("basic");
+  };
+
   return (
-    <main className="h-screen overflow-auto bg-gradient-to-b from-background to-secondary/30">
-      <div className="container mx-auto max-w-7xl flex flex-col min-h-screen">
+    <main className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="container mx-auto max-w-7xl px-4 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between py-2 sticky top-0 bg-background/80 backdrop-blur-sm z-10">
+        <header className="flex items-center justify-between mb-8 animate-fade-in">
           <Link href="/">
-            <Button variant="ghost" className="gap-2 hover:bg-secondary/40">
+            <Button
+              variant="ghost"
+              className="gap-2 hover:bg-primary/10 transition-smooth"
+            >
               <ArrowLeft className="w-4 h-4" />
               Back to Home
             </Button>
           </Link>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-primary">PawSense</h1>
-            <Brain className="w-6 h-6 text-primary" />
-            <PawPrint className="w-4 h-4 text-primary" />
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-primary">
+              PawSense
+            </h1>
+            <div className="flex items-center gap-1">
+              <PawPrint className="w-5 h-5 text-secondary" />
+            </div>
+          </div>
+        </header>
+
+        {/* Progress Steps */}
+        <div className="mb-8 animate-fade-in">
+          <div className="flex items-center justify-center gap-4">
+            {[
+              { num: 1, label: "Upload" },
+              { num: 2, label: "Select Type" },
+              { num: 3, label: "Analyze" },
+              { num: 4, label: "Results" },
+            ].map((step, idx) => (
+              <React.Fragment key={step.num}>
+                <div className="flex flex-col items-center gap-2">
+                  <div
+                    className={`
+                      w-12 h-12 rounded-full flex items-center justify-center font-semibold
+                      transition-smooth
+                      ${currentStep >= step.num
+                        ? "bg-gradient-primary text-white shadow-lg"
+                        : "bg-muted text-muted-foreground"
+                      }
+                    `}
+                  >
+                    {currentStep > step.num ? (
+                      <CheckCircle2 className="w-6 h-6" />
+                    ) : (
+                      step.num
+                    )}
+                  </div>
+                  <span
+                    className={`text-sm font-medium ${currentStep >= step.num
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                      }`}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+                {idx < 3 && (
+                  <ChevronRight
+                    className={`w-5 h-5 ${currentStep > step.num
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                      }`}
+                  />
+                )}
+              </React.Fragment>
+            ))}
           </div>
         </div>
 
-        {/* Main Content - Split Layout */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 pb-4">
-          {/* Left Panel - Controls */}
-          <div className="lg:col-span-5 flex flex-col">
-            {/* Upload Card */}
-            <Card
-              className={`
-              mb-2 p-4 border-2 transition-all duration-300 shadow-sm
-          ${
-            isDragging
-              ? "border-primary border-dashed scale-105"
-              : "border-border"
-          }
-              ${imagePreview ? "bg-muted/30 h-72 w-72 mx-auto " : ""}
-        `}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-            >
-              {!imagePreview ? (
-                <div className="flex flex-col items-center gap-4 py-4 h-full justify-center">
-                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
-                    <Upload className="w-8 h-8 text-primary" />
-                  </div>
-                  <div className="text-center">
-                    <h2 className="text-xl font-semibold mb-2">
-                      Upload Your Dog's Photo
-                    </h2>
-                    <p className="text-muted-foreground mb-4">
-                      Drag and drop your image here or click to browse
-                    </p>
-                    <label htmlFor="file-upload">
-                      <Button
-                        size="lg"
-                        type="button"
-                        className="relative overflow-hidden group"
-                        onClick={() =>
-                          document.getElementById("file-upload")?.click()
-                        }
-                      >
-                        <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Choose File
-                      </Button>
-                      <input
-                        id="file-upload"
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleFileSelect}
-                      />
-                    </label>
-                  </div>
+        {/* Main Content */}
+        <div className="max-w-5xl mx-auto">
+          {/* Step 1: Upload Image */}
+          {currentStep === 1 && (
+            <Card className="p-8 animate-scale-in hover-lift">
+              <div
+                className={`
+                  flex flex-col items-center gap-6 py-12
+                  border-2 border-dashed rounded-xl transition-smooth
+                  ${isDragging
+                    ? "border-primary bg-primary/5 scale-105"
+                    : "border-border"
+                  }
+                `}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+              >
+                <div className="w-24 h-24 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
+                  <Upload className="w-12 h-12 text-white" />
                 </div>
-              ) : (
-                <div className="h-full flex flex-col">
-                  <div className="relative aspect-square rounded-lg overflow-hidden border border-border shadow-sm mb-2">
+                <div className="text-center max-w-md">
+                  <h2 className="text-3xl font-bold mb-3">
+                    Upload Your Dog's Photo
+                  </h2>
+                  <p className="text-muted-foreground text-lg mb-6">
+                    Drag and drop your image here, or click the button below to
+                    browse
+                  </p>
+                  <label htmlFor="file-upload">
+                    <Button
+                      size="lg"
+                      type="button"
+                      className="relative overflow-hidden group hover-lift"
+                      onClick={() =>
+                        document.getElementById("file-upload")?.click()
+                      }
+                    >
+                      <Upload className="w-5 h-5 mr-2" />
+                      Choose File
+                    </Button>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                    />
+                  </label>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Step 2: Select Analysis Type */}
+          {currentStep === 2 && (
+            <div className="space-y-6 animate-scale-in">
+              <Card className="p-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-primary shadow-lg">
                     <img
                       src={imagePreview}
                       alt="Preview"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="flex justify-between mt-auto">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setImagePreview("");
-                        setSelectedImage(null);
-                        setResults(null);
-                      }}
-                    >
-                      Replace
-                    </Button>
-                    <Button
-                      onClick={analyzeImage}
-                      disabled={isAnalyzing}
-                      className="relative overflow-hidden"
-                    >
-                      {isAnalyzing ? (
-                        <span className="flex items-center">
-                          <svg
-                            className="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Analyzing...
-                        </span>
-                      ) : (
-                        "Analyze Image"
-                      )}
-                    </Button>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-2">
+                      Select Analysis Type
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Choose how you'd like to analyze this image
+                    </p>
                   </div>
                 </div>
-              )}
-            </Card>
 
-            {/* Analysis and Query Section - Condensed */}
-            <Card className="mb-4 p-4 shadow-sm">
-              <div className="space-y-2 flex flex-col">
-                <div className="space-y-1 flex-shrink-0">
-                  <h3 className="text-lg font-medium">Analysis Type</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      variant={analysisType === "basic" ? "default" : "outline"}
-                      onClick={() => setAnalysisType("basic")}
-                      className="flex items-center justify-center py-1 h-auto"
-                      size="sm"
-                    >
-                      <Search className="w-4 h-4 mr-1" />
-                      <span>Basic</span>
-                    </Button>
-                    <Button
-                      variant={analysisType === "vlm" ? "default" : "outline"}
-                      onClick={() => setAnalysisType("vlm")}
-                      className="flex items-center justify-center py-1 h-auto"
-                      size="sm"
-                    >
-                      <Brain className="w-4 h-4 mr-1" />
-                      <span>VLM</span>
-                    </Button>
-                    <Button
-                      variant={
-                        analysisType === "reasoning" ? "default" : "outline"
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <button
+                    onClick={() => setAnalysisType("basic")}
+                    className={`
+                      p-6 rounded-xl border-2 transition-smooth text-left hover-lift
+                      ${analysisType === "basic"
+                        ? "border-primary bg-primary/5 shadow-lg"
+                        : "border-border hover:border-primary/50"
                       }
-                      onClick={() => setAnalysisType("reasoning")}
-                      className="flex items-center justify-center py-1 h-auto"
-                      size="sm"
-                    >
-                      <Info className="w-4 h-4 mr-1" />
-                      <span>Reasoning</span>
-                    </Button>
-                  </div>
-                </div>
+                    `}
+                  >
+                    <Search className="w-8 h-8 text-primary mb-3" />
+                    <h3 className="font-semibold text-lg mb-2">Basic</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Quick breed identification with confidence scores
+                    </p>
+                  </button>
 
-                <h3 className="text-lg font-medium mt-2">Ask About This Dog</h3>
-                <div className="flex-1 flex flex-col max-h-[200px]">
-                  <Textarea
-                    placeholder="Ask a question about this dog or breeds in general..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="min-h-[60px] flex-1 focus:border-primary focus:ring-primary max-h-[80px]"
-                  />
-
-                  <div className="flex flex-wrap gap-2 my-2">
-                    {suggestedQueries.slice(0, 4).map((q, i) => (
-                      <Button
-                        key={i}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setQuery(q)}
-                        className="text-xs border border-secondary/50 hover:bg-secondary/30 hover:text-foreground"
-                      >
-                        {q}
-                      </Button>
-                    ))}
-                  </div>
-
-                  <div className="flex mt-auto">
-                    <Button
-                      className="w-full relative overflow-hidden group"
-                      onClick={() =>
-                        selectedImage
-                          ? submitSmartQuery()
-                          : submitGeneralQuestion()
+                  <button
+                    onClick={() => setAnalysisType("vlm")}
+                    className={`
+                      p-6 rounded-xl border-2 transition-smooth text-left hover-lift
+                      ${analysisType === "vlm"
+                        ? "border-primary bg-primary/5 shadow-lg"
+                        : "border-border hover:border-primary/50"
                       }
-                      disabled={!query}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Ask Question
-                    </Button>
+                    `}
+                  >
+                    <Brain className="w-8 h-8 text-primary mb-3" />
+                    <h3 className="font-semibold text-lg mb-2">VLM</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Advanced vision-language model with detailed descriptions
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => setAnalysisType("reasoning")}
+                    className={`
+                      p-6 rounded-xl border-2 transition-smooth text-left hover-lift
+                      ${analysisType === "reasoning"
+                        ? "border-primary bg-primary/5 shadow-lg"
+                        : "border-border hover:border-primary/50"
+                      }
+                    `}
+                  >
+                    <Info className="w-8 h-8 text-primary mb-3" />
+                    <h3 className="font-semibold text-lg mb-2">Reasoning</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Deep visual reasoning and comparative analysis
+                    </p>
+                  </button>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={resetWizard}>
+                    Change Image
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => setCurrentStep(3)}
+                  >
+                    Continue
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Step 3: Analyze */}
+          {currentStep === 3 && (
+            <div className="space-y-6 animate-scale-in">
+              <Card className="p-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-primary shadow-lg">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-2">Ready to Analyze</h2>
+                    <p className="text-muted-foreground">
+                      Analysis Type:{" "}
+                      <span className="font-semibold text-primary capitalize">
+                        {analysisType}
+                      </span>
+                    </p>
                   </div>
                 </div>
-              </div>
-            </Card>
-          </div>
 
-          {/* Right Panel - Results */}
-          <div className="lg:col-span-7">
-            <Card className="shadow-sm flex flex-col mb-4">
-              {!results ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                  <div className="w-20 h-20 rounded-full bg-secondary/40 flex items-center justify-center mb-4">
-                    <Dog className="w-10 h-10 text-secondary-foreground/60" />
-                  </div>
-                  <h2 className="text-2xl font-semibold mb-2">
-                    Upload & Analyze
-                  </h2>
-                  <p className="text-muted-foreground max-w-md">
-                    Upload a dog image and select an analysis type to see breed
-                    identification, breed details, and more.
-                  </p>
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={() => setCurrentStep(2)}>
+                    Back
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gradient-primary hover:opacity-90"
+                    onClick={analyzeImage}
+                    disabled={isAnalyzing}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Analyze Image
+                      </>
+                    )}
+                  </Button>
                 </div>
-              ) : (
-                <Tabs
-                  defaultValue={getTabConfig().defaultTab}
-                  className="flex flex-col"
-                >
-                  <div className="px-4 pt-2 flex-shrink-0">
-                    <TabsList className="grid grid-cols-3 w-full">
-                      <TabsTrigger
-                        value="overview"
-                        className={
-                          getTabConfig().visibleTabs.includes("overview")
-                            ? ""
-                            : "hidden"
-                        }
-                      >
-                        Overview
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="details"
-                        className={
-                          getTabConfig().visibleTabs.includes("details")
-                            ? ""
-                            : "hidden"
-                        }
-                      >
-                        Details
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="queries"
-                        className={
-                          getTabConfig().visibleTabs.includes("queries")
-                            ? ""
-                            : "hidden"
-                        }
-                      >
-                        Queries
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="visual"
-                        className={
-                          getTabConfig().visibleTabs.includes("visual")
-                            ? ""
-                            : "hidden"
-                        }
-                      >
-                        Visual
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
+              </Card>
+            </div>
+          )}
 
-                  <div className="flex-1 p-4 overflow-auto">
-                    <TabsContent
-                      value="overview"
-                      className="h-full m-0 space-y-3 overflow-auto"
-                    >
-                      <div className="space-y-3">
-                        <h2 className="text-2xl font-bold">Top Predictions</h2>
-                        {results.predictions &&
-                          results.predictions.map((pred, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center space-x-4 p-4 bg-background rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                            >
-                              <div className="w-16 text-center">
-                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary font-medium">
-                                  {Math.round(pred.confidence * 100)}%
-                                </div>
-                              </div>
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-lg capitalize">
-                                  {pred.breed.replace(/_/g, " ")}
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {pred.info?.characteristics?.join(", ")}
-                                </p>
-                              </div>
+          {/* Step 4: Results */}
+          {currentStep === 4 && results && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Results Header */}
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-primary shadow-lg">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold mb-1">
+                        Analysis Complete
+                      </h2>
+                      <p className="text-muted-foreground">
+                        {results.predictions && results.predictions.length > 0
+                          ? `Top match: ${results.predictions[0].breed.replace(/_/g, " ")}`
+                          : "Results ready"}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" onClick={resetWizard}>
+                    New Analysis
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Results Tabs */}
+              <Card className="p-6">
+                <Tabs defaultValue={getTabConfig().defaultTab}>
+                  <TabsList className="grid w-full grid-cols-3 mb-6">
+                    {getTabConfig().visibleTabs.includes("overview") && (
+                      <TabsTrigger value="overview">Overview</TabsTrigger>
+                    )}
+                    {getTabConfig().visibleTabs.includes("details") && (
+                      <TabsTrigger value="details">Details</TabsTrigger>
+                    )}
+                    {getTabConfig().visibleTabs.includes("queries") && (
+                      <TabsTrigger value="queries">Q&A</TabsTrigger>
+                    )}
+                    {getTabConfig().visibleTabs.includes("visual") && (
+                      <TabsTrigger value="visual">Visual</TabsTrigger>
+                    )}
+                  </TabsList>
+
+                  <TabsContent value="overview" className="space-y-4">
+                    <h3 className="text-xl font-semibold mb-4">
+                      Top Predictions
+                    </h3>
+                    {results.predictions &&
+                      results.predictions.map((pred, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-4 p-4 rounded-xl bg-gradient-soft border border-border hover-lift"
+                        >
+                          <div className="flex-shrink-0">
+                            <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                              {Math.round(pred.confidence * 100)}%
                             </div>
-                          ))}
-                      </div>
-                    </TabsContent>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg capitalize mb-1">
+                              {pred.breed.replace(/_/g, " ")}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {pred.info?.characteristics?.join(", ") ||
+                                "No characteristics available"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </TabsContent>
 
-                    <TabsContent
-                      value="details"
-                      className="h-full m-0 overflow-auto"
-                    >
-                      {results.predictions && results.predictions[0] && (
-                        <div className="space-y-6">
-                          <h2 className="text-2xl font-bold capitalize">
+                  <TabsContent value="details" className="space-y-6">
+                    {results.predictions && results.predictions[0] && (
+                      <>
+                        <div>
+                          <h3 className="text-2xl font-bold capitalize mb-4">
                             {results.predictions[0].breed.replace(/_/g, " ")}
-                          </h2>
-
+                          </h3>
                           {results.predictions[0].description && (
-                            <div className="p-4 bg-secondary/20 rounded-lg shadow-sm">
-                              <p>{results.predictions[0].description}</p>
-                            </div>
-                          )}
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2 p-3 bg-background rounded-lg shadow-sm">
-                              <h3 className="font-medium text-primary">Size</h3>
-                              <p>
-                                {results.predictions[0].info?.size ||
-                                  "Not specified"}
-                              </p>
-                            </div>
-                            <div className="space-y-2 p-3 bg-background rounded-lg shadow-sm">
-                              <h3 className="font-medium text-primary">
-                                Energy Level
-                              </h3>
-                              <p>
-                                {results.predictions[0].info?.energy_level ||
-                                  "Not specified"}
-                              </p>
-                            </div>
-                            <div className="space-y-2 p-3 bg-background rounded-lg shadow-sm">
-                              <h3 className="font-medium text-primary">
-                                Good with Children
-                              </h3>
-                              <p>
-                                {results.predictions[0].info
-                                  ?.good_with_children || "Not specified"}
-                              </p>
-                            </div>
-                            <div className="space-y-2 p-3 bg-background rounded-lg shadow-sm">
-                              <h3 className="font-medium text-primary">
-                                Trainability
-                              </h3>
-                              <p>
-                                {results.predictions[0].info?.trainability ||
-                                  "Not specified"}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <h3 className="font-medium">Characteristics</h3>
-                            <div className="flex flex-wrap gap-2">
-                              {results.predictions[0].info?.characteristics?.map(
-                                (char, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm shadow-sm"
-                                  >
-                                    {char}
-                                  </span>
-                                )
-                              ) || "No characteristics specified"}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent
-                      value="visual"
-                      className="h-full m-0 overflow-auto"
-                    >
-                      <div className="space-y-6">
-                        {results.visual_reasoning && (
-                          <div className="p-4 bg-secondary/20 rounded-lg shadow-sm">
-                            <h3 className="font-medium mb-2 text-primary">
-                              Visual Reasoning
-                            </h3>
-                            <p>{results.visual_reasoning}</p>
-                          </div>
-                        )}
-
-                        {results.comparative_reasoning && (
-                          <div className="p-4 bg-secondary/20 rounded-lg shadow-sm">
-                            <h3 className="font-medium mb-2 text-primary">
-                              Comparative Analysis
-                            </h3>
-                            <p>{results.comparative_reasoning}</p>
-                          </div>
-                        )}
-
-                        {results.colors && (
-                          <div className="p-4 bg-secondary/20 rounded-lg shadow-sm">
-                            <h3 className="font-medium mb-2 text-primary">
-                              Color Analysis
-                            </h3>
-                            <p>{results.colors}</p>
-                          </div>
-                        )}
-
-                        {results.key_visual_features &&
-                          results.key_visual_features.length > 0 && (
-                            <div className="space-y-2">
-                              <h3 className="font-medium text-primary">
-                                Key Visual Features
-                              </h3>
-                              <div className="grid grid-cols-2 gap-2">
-                                {results.key_visual_features.map(
-                                  (feature, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="p-3 bg-background rounded-lg flex items-center gap-2 shadow-sm"
-                                    >
-                                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                                      <span>{feature}</span>
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                          )}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent
-                      value="queries"
-                      className="h-full m-0 overflow-auto"
-                    >
-                      {isVisualLoading ? (
-                        <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                          <p className="text-center text-sm text-muted-foreground">
-                            Processing your question... Please wait.
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          {results?.queryResponse ? (
-                            <div className="space-y-4">
-                              <div>
-                                <h3 className="font-semibold mb-1">
-                                  Your Question
-                                </h3>
-                                <p className="text-muted-foreground">
-                                  {results.queryResponse.query}
-                                </p>
-                              </div>
-
-                              {results.queryResponse.is_general_question && (
-                                <div className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-semibold px-2 py-1 rounded">
-                                  General Dog Question
-                                </div>
-                              )}
-
-                              {results.queryResponse.is_visual_question && (
-                                <div className="inline-block bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-semibold px-2 py-1 rounded">
-                                  Visual Analysis Question
-                                </div>
-                              )}
-
-                              <div>
-                                <h3 className="font-semibold mb-1">Answer</h3>
-                                <p>{results.queryResponse.response}</p>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-center text-sm text-muted-foreground py-4">
-                              Ask a question about the dog in the image
+                            <p className="text-muted-foreground leading-relaxed p-4 bg-secondary/10 rounded-xl">
+                              {results.predictions[0].description}
                             </p>
                           )}
-                        </>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 rounded-xl bg-gradient-soft border border-border">
+                            <h4 className="font-semibold text-primary mb-2">
+                              Size
+                            </h4>
+                            <p>
+                              {results.predictions[0].info?.size ||
+                                "Not specified"}
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-gradient-soft border border-border">
+                            <h4 className="font-semibold text-primary mb-2">
+                              Energy Level
+                            </h4>
+                            <p>
+                              {results.predictions[0].info?.energy_level ||
+                                "Not specified"}
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-gradient-soft border border-border">
+                            <h4 className="font-semibold text-primary mb-2">
+                              Good with Children
+                            </h4>
+                            <p>
+                              {results.predictions[0].info
+                                ?.good_with_children || "Not specified"}
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-gradient-soft border border-border">
+                            <h4 className="font-semibold text-primary mb-2">
+                              Trainability
+                            </h4>
+                            <p>
+                              {results.predictions[0].info?.trainability ||
+                                "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold mb-3">
+                            Characteristics
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {results.predictions[0].info?.characteristics?.map(
+                              (char, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/20"
+                                >
+                                  {char}
+                                </span>
+                              )
+                            ) || "No characteristics specified"}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="visual" className="space-y-6">
+                    {results.visual_reasoning && (
+                      <div className="p-6 rounded-xl bg-gradient-soft border border-border">
+                        <h4 className="font-semibold text-primary mb-3 flex items-center gap-2">
+                          <Brain className="w-5 h-5" />
+                          Visual Reasoning
+                        </h4>
+                        <p className="leading-relaxed">
+                          {results.visual_reasoning}
+                        </p>
+                      </div>
+                    )}
+
+                    {results.comparative_reasoning && (
+                      <div className="p-6 rounded-xl bg-gradient-soft border border-border">
+                        <h4 className="font-semibold text-primary mb-3 flex items-center gap-2">
+                          <Sparkles className="w-5 h-5" />
+                          Comparative Analysis
+                        </h4>
+                        <p className="leading-relaxed">
+                          {results.comparative_reasoning}
+                        </p>
+                      </div>
+                    )}
+
+                    {results.colors && (
+                      <div className="p-6 rounded-xl bg-gradient-soft border border-border">
+                        <h4 className="font-semibold text-primary mb-3">
+                          Color Analysis
+                        </h4>
+                        <p className="leading-relaxed">{results.colors}</p>
+                      </div>
+                    )}
+
+                    {results.key_visual_features &&
+                      results.key_visual_features.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-3">
+                            Key Visual Features
+                          </h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            {results.key_visual_features.map(
+                              (feature, idx) => (
+                                <div
+                                  key={idx}
+                                  className="p-4 rounded-xl bg-gradient-soft border border-border flex items-center gap-3"
+                                >
+                                  <div className="w-2 h-2 rounded-full bg-primary"></div>
+                                  <span>{feature}</span>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
                       )}
-                    </TabsContent>
-                  </div>
+                  </TabsContent>
+
+                  <TabsContent value="queries" className="space-y-6">
+                    {/* Query Input */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold">Ask About This Dog</h4>
+                      <Textarea
+                        placeholder="Ask a question about this dog or breeds in general..."
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        className="min-h-[100px]"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {suggestedQueries.slice(0, 4).map((q, i) => (
+                          <Button
+                            key={i}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setQuery(q)}
+                            className="text-xs hover:bg-primary/10"
+                          >
+                            {q}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={submitSmartQuery}
+                        disabled={!query || isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 mr-2" />
+                            Ask Question
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Query Response */}
+                    {isVisualLoading ? (
+                      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                        <p className="text-muted-foreground">
+                          Processing your question...
+                        </p>
+                      </div>
+                    ) : (
+                      results?.queryResponse && (
+                        <div className="space-y-4 p-6 rounded-xl bg-gradient-soft border border-border">
+                          <div>
+                            <h5 className="font-semibold mb-2">
+                              Your Question
+                            </h5>
+                            <p className="text-muted-foreground">
+                              {results.queryResponse.query}
+                            </p>
+                          </div>
+
+                          {results.queryResponse.is_general_question && (
+                            <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-semibold px-3 py-1 rounded-full">
+                              General Dog Question
+                            </span>
+                          )}
+
+                          {results.queryResponse.is_visual_question && (
+                            <span className="inline-block bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-semibold px-3 py-1 rounded-full">
+                              Visual Analysis Question
+                            </span>
+                          )}
+
+                          <div>
+                            <h5 className="font-semibold mb-2">Answer</h5>
+                            <p className="leading-relaxed">
+                              {results.queryResponse.response}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </TabsContent>
                 </Tabs>
-              )}
-            </Card>
-          </div>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
     </main>

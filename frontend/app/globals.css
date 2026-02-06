@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -18,59 +20,59 @@
 
 @layer base {
   :root {
-    /* Joyful, Minimalist Light Theme */
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    /* Pacific Blue Theme - Professional & Calming */
+    --background: 0 0% 100%;
+    --foreground: 197 35% 25%; /* Blue Slate #326273 */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 197 35% 25%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 357 85% 67%;  /* Coral Red - energetic, playful */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 174 75% 75%; /* Aquamarine - fresh, calming */
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 42 94% 69%; /* Mustard Yellow - cheerful */
-    --accent-foreground: 222 47% 11%;
+    --popover-foreground: 197 35% 25%;
+    --primary: 193 32% 52%; /* Pacific Blue #5C9EAD */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 17 48% 68%; /* Tangerine Dream #E39774 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 93.3%; /* Platinum #EEEEEE */
+    --muted-foreground: 197 15% 45%;
+    --accent: 17 48% 68%; /* Tangerine Dream */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 357 85% 67%;
-    --chart-1: 357 85% 67%;
-    --chart-2: 174 75% 75%;
-    --chart-3: 42 94% 69%;
-    --chart-4: 195 83% 58%;
-    --chart-5: 152 76% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 193 32% 52%;
+    --chart-1: 193 32% 52%;
+    --chart-2: 17 48% 68%;
+    --chart-3: 197 35% 25%;
+    --chart-4: 193 45% 70%;
+    --chart-5: 17 60% 75%;
     --radius: 0.75rem;
   }
   .dark {
-    /* Joyful, Minimalist Dark Theme */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 357 85% 67%; /* Coral Red */
-    --primary-foreground: 222 47% 11%;
-    --secondary: 174 75% 55%; /* Darker Aquamarine */
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 42 94% 65%; /* Darker Mustard Yellow */
-    --accent-foreground: 210 40% 98%;
+    /* Pacific Blue Dark Theme */
+    --background: 197 35% 15%; /* Dark Blue Slate */
+    --foreground: 0 0% 93.3%;
+    --card: 197 35% 18%;
+    --card-foreground: 0 0% 93.3%;
+    --popover: 197 35% 18%;
+    --popover-foreground: 0 0% 93.3%;
+    --primary: 193 32% 52%; /* Pacific Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 17 48% 68%; /* Tangerine Dream */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 197 30% 22%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 17 48% 68%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 357 85% 67%;
-    --chart-1: 357 85% 67%;
-    --chart-2: 174 75% 55%;
-    --chart-3: 42 94% 65%;
-    --chart-4: 195 83% 48%;
-    --chart-5: 152 76% 40%;
+    --destructive-foreground: 0 0% 93.3%;
+    --border: 197 30% 25%;
+    --input: 197 30% 25%;
+    --ring: 193 32% 52%;
+    --chart-1: 193 32% 52%;
+    --chart-2: 17 48% 68%;
+    --chart-3: 193 45% 70%;
+    --chart-4: 17 60% 75%;
+    --chart-5: 0 0% 70%;
   }
 }
 
@@ -79,6 +81,155 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+  
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+  
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+  
+  h3 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+  }
+  
+  h4 {
+    @apply text-xl md:text-2xl lg:text-3xl;
+  }
+  
+  p {
+    @apply text-base md:text-lg leading-relaxed;
+  }
+}
+
+@layer utilities {
+  /* Smooth Transitions */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .transition-bounce {
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  /* Animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes pulse-soft {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-in-left {
+    animation: slideInLeft 0.5s ease-out forwards;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
+  
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+  
+  /* Gradient Backgrounds */
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, hsl(193, 32%, 52%) 0%, hsl(193, 45%, 70%) 100%);
+  }
+  
+  .bg-gradient-secondary {
+    background: linear-gradient(135deg, hsl(17, 48%, 68%) 0%, hsl(17, 60%, 75%) 100%);
+  }
+  
+  .bg-gradient-soft {
+    background: linear-gradient(135deg, hsl(0, 0%, 100%) 0%, hsl(0, 0%, 98%) 100%);
+  }
+  
+  /* Glass Effect */
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .dark .glass-effect {
+    background: rgba(50, 98, 115, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Hover Effects */
+  .hover-lift {
+    @apply transition-smooth;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(92, 158, 173, 0.3);
+  }
+  
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(92, 158, 173, 0.4);
   }
 }

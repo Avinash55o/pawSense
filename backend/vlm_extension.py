@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 import json
 import re
-from breed_info import get_breed_info, get_all_breeds
+from app.utils.breed_info import get_breed_info, get_all_breeds
 import random
 import logging
 import traceback
@@ -24,9 +24,16 @@ logger = logging.getLogger(__name__)
 class DogBreedVLM:
     """A lightweight Vision-Language Model for dog breed identification and description."""
     
-    def __init__(self, vision_model_path='models/breed_model/mobilenetv2_dogbreeds.pth'):
-        """Initialize the VLM with the vision model and language templates."""
-        self.vision_model = self._load_vision_model(vision_model_path)
+    
+    def __init__(self, vision_model_path=None, classifier=None):
+        """Initialize the VLM with the vision model and language templates.
+        
+        Args:
+            vision_model_path: Optional path to custom model (deprecated)
+            classifier: Optional BreedClassifier instance to use instead
+        """
+        self.classifier = classifier
+        self.vision_model = None  # Deprecated, using classifier instead
         self.templates = self._load_language_templates()
         self.breeds = get_all_breeds()
         self.breed_features = self._load_breed_features()
@@ -106,7 +113,7 @@ class DogBreedVLM:
                     "use_cpu_for_blip": True,
                     "blip_model": "Salesforce/blip-vqa-base",
                     "blip_max_length": 100,
-                    "model_load_timeout": 60,
+                    "model_load_timeout": 300,  # Increased from 60 to 300 seconds
                     "enable_fallbacks": True
                 }
             
@@ -266,72 +273,66 @@ class DogBreedVLM:
     def process_image(self, image):
         """Process an image and return breed predictions with descriptions."""
         try:
-            # Check if the vision model is loaded
-            if self.vision_model is None:
-                logger.error("Vision model is not loaded, cannot process image")
-                return [{"breed": "unknown", "confidence": 0.0, "info": {"description": "Model not available"}}]
+            # Check if classifier is available
+            if self.classifier is None:
+                logger.error("Classifier is not available, cannot process image")
+                return [{"breed": "unknown", "confidence": 0.0, "info": {"description": "Classifier not available"}}]
                 
-            # Preprocess image directly without importing from main
             # Convert image to RGB if needed
             if image.mode != 'RGB':
                 image = image.convert('RGB')
                 
-            # Apply the transformations
-            from torchvision import transforms
-            transform = transforms.Compose([
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            ])
-            
-            # Apply transformations and add batch dimension
-            input_tensor = transform(image).unsqueeze(0)
-            
-            # Get prediction with error handling
+            # Get predictions from classifier
             try:
-                with torch.no_grad():
-                    output = self.vision_model(input_tensor)
-                    
-                # Post-process results directly without importing
-                # Get probabilities
-                probabilities = torch.nn.functional.softmax(output[0], dim=0)
-                
-                # Get top 5 predictions
-                top5_prob, top5_indices = torch.topk(probabilities, 5)
+                raw_predictions = self.classifier.predict(image)
                 
                 # Process results
+                from app.utils.breed_info import get_breed_info
                 results = []
-                for idx, prob in zip(top5_indices.tolist(), top5_prob.tolist()):
-                    # Ensure index is within bounds
-                    if idx < len(self.breeds):
-                        breed = self.breeds[idx]
-                        breed_info = get_breed_info(breed)
-                        # Convert to standard Python float
-                        confidence = float(prob)
-                        results.append({
-                            "breed": breed,
-                            "confidence": confidence,
-                            "info": breed_info
-                        })
-                        
-                # Add detailed text descriptions
-                for pred in results:
-                    pred["description"] = self._generate_description(pred)
-                    pred["visual_reasoning"] = self._generate_visual_reasoning(pred)
+                
+                for pred in raw_predictions[:5]:  # Top 5
+                    breed_name = pred['label'].lower().replace(' ', '_')
+                    
+                    # Get breed info
+                    try:
+                        breed_info = get_breed_info(breed_name)
+                    except:
+                        breed_info = {
+                            "name": pred['label'],
+                            "description": f"A {pred['label']} dog breed.",
+                            "characteristics": ["Loyal", "Intelligent"],
+                            "size": "Medium",
+                            "energy_level": "Medium",
+                            "good_with_children": True
+                        }
+                    
+                    confidence = float(pred['score'])
+                    result = {
+                        "breed": breed_name,
+                        "confidence": confidence,
+                        "info": breed_info
+                    }
+                    
+                    # Add detailed text descriptions
+                    result["description"] = self._generate_description(result)
+                    result["visual_reasoning"] = self._generate_visual_reasoning(result)
                     
                     # Add confidence interpretation
-                    if pred["confidence"] > 0.7:
+                    if confidence > 0.7:
                         confidence_level = "high"
-                    elif pred["confidence"] > 0.4:
+                    elif confidence > 0.4:
                         confidence_level = "medium"
                     else:
                         confidence_level = "low"
                     
-                    pred["confidence_statement"] = random.choice(self.templates["confidence_levels"][confidence_level]).format(
-                        breed=pred["breed"].replace("_", " ").title()
+                    result["confidence_statement"] = random.choice(self.templates["confidence_levels"][confidence_level]).format(
+                        breed=breed_name.replace("_", " ").title()
                     )
+                    
+                    results.append(result)
                 
                 return results
+                
             except Exception as model_error:
                 logger.error(f"Error during model inference: {str(model_error)}")
                 logger.error(traceback.format_exc())
@@ -997,8 +998,13 @@ class DogBreedVLM:
                 # Run model inference with timeout
                 with torch.no_grad():
                     outputs = self.blip_model.generate(
-                        **inputs, 
-                        max_length=settings.get("blip_max_length", 100)
+                        **inputs,
+                        max_length=50,
+                        min_length=5,
+                        num_beams=5,
+                        early_stopping=True,
+                        length_penalty=0.6,
+                        no_repeat_ngram_size=2
                     )
                 answer = self.blip_processor.decode(outputs[0], skip_special_tokens=True)
                 

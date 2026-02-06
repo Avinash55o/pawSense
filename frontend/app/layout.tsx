@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'PawSense - AI Dog Breed Analyzer',
   description: 'Identify and analyze dog breeds using advanced AI vision technology',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
