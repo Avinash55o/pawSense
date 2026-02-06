@@ -13,7 +13,7 @@ class BreedClassifier:
             logger.info("Loading pretrained breed classifier...")
             self.model = pipeline(
                 "image-classification",
-                model="microsoft/resnet-50",
+                model="google/mobilenet_v2_1.0_224",
                 device="cpu"
             )
             logger.info("Model loaded successfully")
