@@ -5,11 +5,9 @@ services:
     runtime: python
     plan: free
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python download_models.py
     startCommand: gunicorn app.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT --timeout 120 --workers 1
     envVars:
-      - key: PORT
-        value: 8000
       - key: ALLOWED_ORIGINS
         value: https://pawsense-model-avinash.onrender.com
       - key: MODEL_CACHE_DIR

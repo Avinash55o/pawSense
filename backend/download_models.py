@@ -16,31 +16,31 @@ def download_models():
     logger.info("Pre-downloading all models...")
     logger.info("=" * 60)
     
-    # 1. Download ResNet-50 for breed classification
-    logger.info("\n1. Downloading ResNet-50 (breed classification)...")
+    # 1. Download MobileNetV2 for breed classification
+    logger.info("\n1. Downloading MobileNetV2 (breed classification)...")
     try:
-        pipeline("image-classification", model="microsoft/resnet-50", device="cpu")
-        logger.info("✅ ResNet-50 downloaded successfully")
+        pipeline("image-classification", model="google/mobilenet_v2_1.0_224", device="cpu")
+        logger.info("✅ MobileNetV2 downloaded successfully")
     except Exception as e:
-        logger.error(f"❌ Failed to download ResNet-50: {e}")
+        logger.error(f"❌ Failed to download MobileNetV2: {e}")
     
-    # 2. Download BLIP for visual Q&A
-    logger.info("\n2. Downloading BLIP (visual Q&A)...")
-    try:
-        BlipProcessor.from_pretrained("Salesforce/blip-vqa-base")
-        BlipForQuestionAnswering.from_pretrained("Salesforce/blip-vqa-base")
-        logger.info("✅ BLIP downloaded successfully")
-    except Exception as e:
-        logger.error(f"❌ Failed to download BLIP: {e}")
-    
-    # 3. Download DistilBERT for general Q&A
-    logger.info("\n3. Downloading DistilBERT (general Q&A)...")
+    # 2. Download DistilBERT for general Q&A
+    logger.info("\n2. Downloading DistilBERT (general Q&A)...")
     try:
         AutoTokenizer.from_pretrained("distilbert-base-cased-distilled-squad")
         AutoModelForQuestionAnswering.from_pretrained("distilbert-base-cased-distilled-squad")
         logger.info("✅ DistilBERT downloaded successfully")
     except Exception as e:
         logger.error(f"❌ Failed to download DistilBERT: {e}")
+
+    # 3. BLIP (commented out to save resources on free tier, enable if VLM is used)
+    # logger.info("\n3. Downloading BLIP (visual Q&A)...")
+    # try:
+    #     BlipProcessor.from_pretrained("Salesforce/blip-vqa-base")
+    #     BlipForQuestionAnswering.from_pretrained("Salesforce/blip-vqa-base")
+    #     logger.info("✅ BLIP downloaded successfully")
+    # except Exception as e:
+    #     logger.error(f"❌ Failed to download BLIP: {e}")
     
     logger.info("\n" + "=" * 60)
     logger.info("✅ All models downloaded successfully!")
