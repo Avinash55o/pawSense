@@ -57,9 +57,20 @@ async def startup_event():
     
     # Initialize general QA model
     if settings.ENABLE_QA:
-        from app.models.general_qa import get_qa_model
-        general_qa_model = get_qa_model()
-        logger.info("General QA model initialized")
+        try:
+            from app.models.general_qa import get_qa_model
+            # Don't force load the model here, let it be lazy loaded on first request
+            # general_qa_model = get_qa_model() 
+            logger.info("General QA enabled (lazy loading)")
+        except Exception as e:
+            logger.error(f"Failed to initialize General QA: {e}")
+            settings.ENABLE_QA = False
+    else:
+        logger.info("General QA disabled to save memory")
+        
+    # Force garbage collection
+    import gc
+    gc.collect()
     
     logger.info("Application startup complete")
 

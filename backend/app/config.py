@@ -27,7 +27,9 @@ class Settings:
     MODEL_CACHE_DIR: str = os.getenv("MODEL_CACHE_DIR", "/tmp/models")
     
     # Feature Flags
-    ENABLE_QA: bool = os.getenv("ENABLE_QA", "true").lower() == "true"
+    # Feature Flags
+    # QA disabled by default to prevent memory crashes on Render Free Tier (512MB limit)
+    ENABLE_QA: bool = os.getenv("ENABLE_QA", "false").lower() == "true"
     
     # Deployment Settings
     IS_RENDER: bool = os.getenv("RENDER", "false").lower() == "true"
