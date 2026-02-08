@@ -479,7 +479,10 @@ export default function Analyzer() {
                   </button>
 
                   <button
-                    onClick={() => setAnalysisType("vlm")}
+                    onClick={() => {
+                      setAnalysisType("vlm");
+                      toast.info("VLM is running in lightweight mode on the free tier.");
+                    }}
                     className={`
                       p-6 rounded-xl border-2 transition-smooth text-left hover-lift
                       ${analysisType === "vlm"
@@ -488,15 +491,22 @@ export default function Analyzer() {
                       }
                     `}
                   >
-                    <Brain className="w-8 h-8 text-primary mb-3" />
-                    <h3 className="font-semibold text-lg mb-2">VLM</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Advanced vision-language model with detailed descriptions
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <Brain className="w-8 h-8 text-primary mb-3" />
+                        <h3 className="font-semibold text-lg mb-2">VLM <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full ml-2">Limited</span></h3>
+                        <p className="text-sm text-muted-foreground">
+                          Advanced vision-language model (Limited on Free Tier)
+                        </p>
+                      </div>
+                    </div>
                   </button>
 
                   <button
-                    onClick={() => setAnalysisType("reasoning")}
+                    onClick={() => {
+                      setAnalysisType("reasoning");
+                      toast.info("Reasoning mode is limited on the free tier.");
+                    }}
                     className={`
                       p-6 rounded-xl border-2 transition-smooth text-left hover-lift
                       ${analysisType === "reasoning"
@@ -505,11 +515,15 @@ export default function Analyzer() {
                       }
                     `}
                   >
-                    <Info className="w-8 h-8 text-primary mb-3" />
-                    <h3 className="font-semibold text-lg mb-2">Reasoning</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Deep visual reasoning and comparative analysis
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <Info className="w-8 h-8 text-primary mb-3" />
+                        <h3 className="font-semibold text-lg mb-2">Reasoning <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full ml-2">Limited</span></h3>
+                        <p className="text-sm text-muted-foreground">
+                          Deep visual reasoning and comparative analysis
+                        </p>
+                      </div>
+                    </div>
                   </button>
                 </div>
 
