@@ -1,4 +1,4 @@
-# PawSense - Dog Breed Identification with AI
+# PawSense - Dog Breed Identification with AI 
 
 PawSense is an advanced dog breed identification and analysis system that combines image classification with Vision-Language capabilities.
 
