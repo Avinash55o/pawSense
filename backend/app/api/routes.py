@@ -174,24 +174,10 @@ async def visual_reasoning(file: UploadFile = File(...)):
         from app.main import breed_classifier
         vlm = DogBreedVLM(classifier=breed_classifier)
         
-        # Process and get reasoning
-        predictions = vlm.process_image(image)
-        comparative_reasoning = vlm.visual_reasoning(predictions)
+        # Use the correct method: visual_reasoning_analysis
+        result = vlm.visual_reasoning_analysis(image)
         
-        # Get visual features
-        visual_features = []
-        if predictions and predictions[0]["breed"] in vlm.breed_features:
-            visual_features = vlm.breed_features[predictions[0]["breed"]]
-        
-        return {
-            "success": True,
-            "top_breed": predictions[0]["breed"] if predictions else None,
-            "confidence": predictions[0]["confidence"] if predictions else 0,
-            "visual_reasoning": predictions[0].get("visual_reasoning", "") if predictions else "",
-            "comparative_reasoning": comparative_reasoning,
-            "key_visual_features": visual_features,
-            "predictions": predictions[:3] if predictions else []
-        }
+        return result
         
     except Exception as e:
         logger.error(f"Error in visual reasoning: {str(e)}")
@@ -251,18 +237,11 @@ async def general_qa_query(query: str = Form("")):
         Answer to the query
     """
     try:
-        # Import QA model
-        from app.models.general_qa import get_qa_model
-        qa_model = get_qa_model()
-        
-        # Answer question
-        answer = qa_model.answer_question(query)
-        
         return {
             "success": True,
             "query": query,
-            "answer": answer,
-            "response": answer  # Add 'response' field for frontend compatibility
+            "answer": "General dog Q&A is currently simplified. Please upload an image to ask specific questions about a dog!",
+            "response": "General dog Q&A is currently simplified. Please upload an image to ask specific questions about a dog!" 
         }
         
     except Exception as e:

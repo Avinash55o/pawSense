@@ -37,15 +37,15 @@ app.add_middleware(
 breed_classifier = None
 prediction_service = None
 vlm = None
-general_qa_model = None
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize models and services on startup."""
-    global breed_classifier, prediction_service, general_qa_model
+    global breed_classifier, prediction_service
     
     logger.info("Starting PawSense API...")
+    # Trigger reload for env update
     
     # Initialize breed classifier
     breed_classifier = get_classifier()
@@ -55,19 +55,6 @@ async def startup_event():
     prediction_service = get_prediction_service(breed_classifier)
     logger.info("Prediction service initialized")
     
-    # Initialize general QA model
-    if settings.ENABLE_QA:
-        try:
-            from app.models.general_qa import get_qa_model
-            # Don't force load the model here, let it be lazy loaded on first request
-            # general_qa_model = get_qa_model() 
-            logger.info("General QA enabled (lazy loading)")
-        except Exception as e:
-            logger.error(f"Failed to initialize General QA: {e}")
-            settings.ENABLE_QA = False
-    else:
-        logger.info("General QA disabled to save memory")
-        
     # Force garbage collection
     import gc
     gc.collect()

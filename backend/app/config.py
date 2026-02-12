@@ -22,17 +22,6 @@ class Settings:
         "ALLOWED_ORIGINS", 
         "*"
     ).split(",") if os.getenv("ALLOWED_ORIGINS") != "*" else ["*"]
-    
-    # Model Settings
-    MODEL_CACHE_DIR: str = os.getenv("MODEL_CACHE_DIR", "/tmp/models")
-    
-    # Feature Flags
-    # Feature Flags
-    # QA disabled by default to prevent memory crashes on Render Free Tier (512MB limit)
-    ENABLE_QA: bool = os.getenv("ENABLE_QA", "false").lower() == "true"
-    
-    # Deployment Settings
-    IS_RENDER: bool = os.getenv("RENDER", "false").lower() == "true"
 
 
 # Create settings instance
