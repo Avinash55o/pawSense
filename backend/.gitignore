@@ -37,7 +37,7 @@ Dockerfile.*
 
 # Environment configurations
 .python-version
-.env*
+.env
 
 # OS specific files
 .DS_Store
