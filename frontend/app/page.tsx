@@ -97,7 +97,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold mb-3">Ask Questions</h3>
               <p className="text-muted-foreground">
-                Ask questions about breeds and get detailed answers from our AI
+                Ask specific questions about your dog's photo and get AI-powered answers
               </p>
             </div>
 

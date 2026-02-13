@@ -96,9 +96,12 @@ export default function Analyzer() {
       case "basic":
         return { defaultTab: "overview", visibleTabs: ["overview", "details"] };
       case "vlm":
-        return { defaultTab: "overview", visibleTabs: ["overview", "queries"] };
+        return { defaultTab: "queries", visibleTabs: ["queries"] };
       case "reasoning":
-        return { defaultTab: "overview", visibleTabs: ["overview", "visual"] };
+        return {
+          defaultTab: "analysis",
+          visibleTabs: ["analysis"],
+        };
       default:
         return { defaultTab: "overview", visibleTabs: ["overview", "details"] };
     }
@@ -188,13 +191,13 @@ export default function Analyzer() {
   const submitSmartQuery = async () => {
     if (!query) return;
 
-    try {
-      // If no image is selected, it must be a general question
-      if (!selectedImage) {
-        await submitGeneralQuestion();
-        return;
-      }
+    // Image is strictly required now
+    if (!selectedImage) {
+      toast.error("Please upload an image first to ask questions!");
+      return;
+    }
 
+    try {
       setIsLoading(true);
       setIsVisualLoading(true);
       const formData = new FormData();
@@ -236,60 +239,6 @@ export default function Analyzer() {
     }
   };
 
-  const submitGeneralQuestion = async () => {
-    if (!query) return;
-
-    try {
-      setIsLoading(true);
-      const formData = new FormData();
-      formData.append("query", query);
-
-      const response = await fetch("/api/general-qa/query", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.success && data.error) {
-        toast.error(`Query failed: ${data.error}`);
-        return;
-      }
-
-      setResults((prev) =>
-        prev
-          ? {
-            ...prev,
-            queryResponse: {
-              ...data,
-              is_general_question: true,
-              top_breed: prev.top_breed || "Unknown",
-            },
-          }
-          : {
-            success: true,
-            queryResponse: {
-              ...data,
-              is_general_question: true,
-              top_breed: "Unknown",
-            },
-          }
-      );
-
-      // Clear the query input after submission
-      setQuery("");
-    } catch (error) {
-      console.error("Error submitting general question:", error);
-      toast.error("Failed to process question. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const suggestedQueries = [
     "What color is this dog?",
     "How does this dog look?",
@@ -310,9 +259,9 @@ export default function Analyzer() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="container mx-auto max-w-7xl px-4 py-6">
+      <div className="container mx-auto max-w-7xl px-4 py-4">
         {/* Header */}
-        <header className="flex items-center justify-between mb-8 animate-fade-in">
+        <header className="flex items-center justify-between mb-6 animate-fade-in">
           <Link href="/">
             <Button
               variant="ghost"
@@ -333,7 +282,7 @@ export default function Analyzer() {
         </header>
 
         {/* Progress Steps */}
-        <div className="mb-8 animate-fade-in">
+        <div className="mb-6 animate-fade-in">
           <div className="flex items-center justify-center gap-4">
             {[
               { num: 1, label: "Upload" },
@@ -443,7 +392,7 @@ export default function Analyzer() {
             <div className="space-y-6 animate-scale-in">
               <Card className="p-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-primary shadow-lg">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-primary shadow-lg">
                     <img
                       src={imagePreview}
                       alt="Preview"
@@ -479,10 +428,7 @@ export default function Analyzer() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setAnalysisType("vlm");
-                      toast.info("VLM is running in lightweight mode on the free tier.");
-                    }}
+                    onClick={() => setAnalysisType("vlm")}
                     className={`
                       p-6 rounded-xl border-2 transition-smooth text-left hover-lift
                       ${analysisType === "vlm"
@@ -494,19 +440,16 @@ export default function Analyzer() {
                     <div className="flex justify-between items-start">
                       <div>
                         <Brain className="w-8 h-8 text-primary mb-3" />
-                        <h3 className="font-semibold text-lg mb-2">VLM <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full ml-2">Limited</span></h3>
+                        <h3 className="font-semibold text-lg mb-2">VLM</h3>
                         <p className="text-sm text-muted-foreground">
-                          Advanced vision-language model (Limited on Free Tier)
+                          Interactive Q&A about your dog using AI vision
                         </p>
                       </div>
                     </div>
                   </button>
 
                   <button
-                    onClick={() => {
-                      setAnalysisType("reasoning");
-                      toast.info("Reasoning mode is limited on the free tier.");
-                    }}
+                    onClick={() => setAnalysisType("reasoning")}
                     className={`
                       p-6 rounded-xl border-2 transition-smooth text-left hover-lift
                       ${analysisType === "reasoning"
@@ -518,9 +461,9 @@ export default function Analyzer() {
                     <div className="flex justify-between items-start">
                       <div>
                         <Info className="w-8 h-8 text-primary mb-3" />
-                        <h3 className="font-semibold text-lg mb-2">Reasoning <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full ml-2">Limited</span></h3>
+                        <h3 className="font-semibold text-lg mb-2">Reasoning</h3>
                         <p className="text-sm text-muted-foreground">
-                          Deep visual reasoning and comparative analysis
+                          Deep visual reasoning and comparative analysis using AI
                         </p>
                       </div>
                     </div>
@@ -548,7 +491,7 @@ export default function Analyzer() {
             <div className="space-y-6 animate-scale-in">
               <Card className="p-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-primary shadow-lg">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-primary shadow-lg">
                     <img
                       src={imagePreview}
                       alt="Preview"
@@ -626,7 +569,7 @@ export default function Analyzer() {
               {/* Results Tabs */}
               <Card className="p-6">
                 <Tabs defaultValue={getTabConfig().defaultTab}>
-                  <TabsList className="grid w-full grid-cols-3 mb-6">
+                  <TabsList className={`grid w-full mb-6 ${getTabConfig().visibleTabs.length === 1 ? 'grid-cols-1' : getTabConfig().visibleTabs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                     {getTabConfig().visibleTabs.includes("overview") && (
                       <TabsTrigger value="overview">Overview</TabsTrigger>
                     )}
@@ -636,8 +579,8 @@ export default function Analyzer() {
                     {getTabConfig().visibleTabs.includes("queries") && (
                       <TabsTrigger value="queries">Q&A</TabsTrigger>
                     )}
-                    {getTabConfig().visibleTabs.includes("visual") && (
-                      <TabsTrigger value="visual">Visual</TabsTrigger>
+                    {getTabConfig().visibleTabs.includes("analysis") && (
+                      <TabsTrigger value="analysis">Visual Analysis</TabsTrigger>
                     )}
                   </TabsList>
 
@@ -743,7 +686,7 @@ export default function Analyzer() {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="visual" className="space-y-6">
+                  <TabsContent value="analysis" className="space-y-6">
                     {results.visual_reasoning && (
                       <div className="p-6 rounded-xl bg-gradient-soft border border-border">
                         <h4 className="font-semibold text-primary mb-3 flex items-center gap-2">
@@ -808,7 +751,7 @@ export default function Analyzer() {
                         placeholder="Ask a question about this dog or breeds in general..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        className="min-h-[100px]"
+                        className="min-h-[60px]"
                       />
                       <div className="flex flex-wrap gap-2">
                         {suggestedQueries.slice(0, 4).map((q, i) => (
