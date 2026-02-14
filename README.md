@@ -1,228 +1,154 @@
-<<<<<<< Updated upstream
-# PawSense - Dog Breed Identification with AI 
-=======
-# 🐾 PawSense - Intelligent Dog Breed Analyzer
->>>>>>> Stashed changes
+# 🐾 PawSense - Intelligent Dog Breed Expert
 
-> **Where Computer Vision meets Canine Companionship.** 
-> A distinct AI-powered application that not only identifies dog breeds but *understands* them through visual reasoning and interactive dialogue.
+![Banner](https://img.shields.io/badge/AI-Powered-blueviolet?style=for-the-badge&logo=google-gemini)
+![Frontend](https://img.shields.io/badge/Frontend-Next.js_14-black?style=for-the-badge&logo=next.js)
+![Backend](https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge&logo=fastapi)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Status](https://img.shields.io/badge/status-production_ready-success)
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
+> **"More than just a breed classifier. It's an AI that *sees* and *understands* your dog."**
 
----
+## Introduction
 
-## 📖 Introduction
+**PawSense** is a next-generation AI application that bridges the gap between pet owners and canine knowledge. Unlike traditional classifiers that simply output a label, PawSense offers a dual-layer analysis system:
 
-**PawSense** is a full-stack AI application designed to bridge the gap between humans and dogs. Unlike standard breed classifiers that simple output a label, PawSense provides a **comprehensive analysis**.
+1.  **Instant Identification**: Uses an on-device optimized **MobileNetV2** model to instantly recognize breeds with high speed and efficiency.
+2.  **Deep Visual Reasoning**: leverages **Google's Gemini 2.5 Flash** (Vision-Language Model) to "see" the image, explain *why* it made a prediction, and answer specific questions like *"Is this dog overweight?"* or *"What creates this unique coat pattern?"*.
 
-It combines traditional **Computer Vision** (for high-accuracy classification) with modern **Vision-Language Models (VLM)** to answer questions about the specific dog in the photo, and **Natural Language Processing (NLP)** to provide general expert advice.
-
-Whether you're trying to identify a mystery rescue dog or just want to learn more about a furry friend, PawSense is your intelligent guide.
+Whether you're a shelter volunteer trying to identify a mixed breed or a dog lover curious about your furry friend, PawSense provides expert-level insights in seconds.
 
 ---
 
-## 🤖 AI Models (The "Brain")
+##  Key Features
 
-PawSense runs on a trio of specialized AI models, orchestrated by a FastAPI backend:
+###  **1. Dual-Mode Analysis**
+*   **Basic Mode**: Ultra-fast breed identification using a lightweight Convolutional Neural Network (CNN). Perfect for quick checks.
+*   **Advanced Mode**: Deep analysis using state-of-the-art Generative AI to provide detailed descriptions and confidence assessments.
 
-| Capability | Model Used | Purpose |
-|------------|------------|---------|
-| **Breed Classification** | `microsoft/resnet-50` | A powerful Convolutional Neural Network (CNN) fine-tuned to recognize visual patterns of dog breeds with high precision. |
-| **Visual Reasoning (VLM)** | `Salesforce/blip-vqa-base` | A Vision-Language Model that "sees" the image and can answer specific questions like "What color is the dog's collar?" or "Does it look happy?". |
-| **General Knowledge (QA)** | `distilbert-base-cased-distilled-squad` | A lightweight, fast Transformer model that answers general requests like "Are Golden Retrievers good with kids?" using a curated knowledge base. |
+###  **2. Visual Reasoning Engine**
+*   **"Why this breed?"**: The AI explains its decision by pointing out specific physical traits (e.g., *"The square muzzle and muscular build indicate a Boxer mix"*).
+*   **Comparative Analysis**: Confused between two lookalikes? PawSense explains the subtle differences found in your specific photo.
 
-> **Note**: These models are optimized for performance. The heavy VLM models are "lazy-loaded" (only loaded when you specifically request deep analysis) to keep the server lightweight and fast.
-
----
-
-## 🛠️ Tech Stack
-
-### **Frontend (The Experience)**
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router) - For server-side rendering and swift routing.
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) - For a beautiful, responsive, mobile-first design system.
-- **Components**: [shadcn/ui](https://ui.shadcn.com/) - Built on generic Radix UI primitives for accessibility.
-- **Animations**: CSS transitions & Framer Motion concepts for a delightful "Pacific Blue" aesthetic.
-- **State Management**: React Hooks (Custom hooks for file handling and API communication).
-
-### **Backend (The Intelligence)**
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) - High-performance, async Python web framework.
-- **ML Engine**: [PyTorch](https://pytorch.org/) & [Hugging Face Transformers](https://huggingface.co/docs/transformers/index).
-- **Image Processing**: [Pillow (PIL)](https://python-pillow.org/) - For robust image manipulation and validation.
-- **Server**: Uvicorn (ASGI) - For handling concurrent requests efficiently.
+###  **3. Interactive "Ask the Dog"**
+*   Chat with your image! Ask questions like:
+    *   *"Is the environment safe for this puppy?"*
+    *   *"What is the approximate age of this dog?"*
+    *   *"Does this dog look happy or stressed?"*
 
 ---
 
-## 🏗️ System Architecture
+##  Tech Stack & Architecture
 
-Processing happens in a privacy-first manner. Images are processed in-memory and never permanently stored.
+### **The "Brain" (AI Models)**
+
+| Component | Technology | Role |
+|-----------|------------|------|
+| **Primary Classifier** | **MobileNetV2** | Lightweight CNN for fast, local breed classification (runs on CPU). |
+| **Visual Reasoning** | **Google Gemini 2.5 Flash** | VLM that provides natural language descriptions and Q&A capabilities. |
+| **Backend API** | **FastAPI (Python)** | High-performance async API server handling model orchestration. |
+| **Vector Search** | **In-Memory** | Efficient filtering to ensure only valid dog breeds are processed. |
+
+### **The "Body" (Application)**
+
+*   **Frontend**: [Next.js 14](https://nextjs.org/) (App Router), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/), [Shadcn/ui](https://ui.shadcn.com/).
+*   **Deployment**: 
+    *   **Frontend**: Vercel (Edge Network)
+    *   **Backend**: Render (Python Environment)
+
+### **System Architecture**
 
 ```mermaid
 graph LR
-    User[User] -->|Upload Image| Frontend[Next.js Frontend]
-    Frontend -->|POST /api/predict| Backend[FastAPI Backend]
+    User[User] -->|Upload Image| Frontend[Next.js Client]
+    Frontend -->|Direct Request| Backend[FastAPI Server]
     
-    subgraph "Backend Services"
-        Backend -->|Image| ResNet[ResNet-50 Classifier]
-        Backend -->|Image + Question| VLM[BLIP VLM]
-        Backend -->|Text Question| QA[DistilBERT QA]
+    subgraph "Intelligent Backend"
+        Backend -->|Image| MobileNet[MobileNetV2 Classifier]
+        Backend -->|Image + Prompt| Gemini[Google Gemini API]
         
-        ResNet -->|Breed Label| Response
-        VLM -->|Visual Answer| Response
-        QA -->|General Advice| Response
+        MobileNet -->|Breed Probabilities| Logic[Fusion Layer]
+        Gemini -->|Visual Reasoning| Logic
     end
     
-    Response -->|JSON Result| Frontend
-    Frontend -->|Visualizes Data| User
+    Logic -->|JSON Response| Frontend
+    Frontend -->|Rich UI| User
 ```
 
 ---
 
-## ✨ Key Features
+## � Project Structure
 
-### 🔍 **1. Intelligent Identification**
-- Instantly detects dog breeds with confidence scores.
-- Handles complex backgrounds and lighting conditions robustly.
-
-### 🧠 **2. Visual Reasoning**
-- Goes beyond simple labels.
-- Explains *why* a dog is identified as a certain breed based on visual features (ears, snout shape, coat pattern).
-- Can perform comparative reasoning (e.g., "This looks like a mix of...").
-
-### 💬 **3. Interactive "Ask the Dog"**
-- A chat interface where you can ask questions regarding the uploaded image.
-- Examples: 
-  - *"Is this dog overweight?"*
-  - *"What creates this coat pattern?"*
-  - *"Is the environment safe for this puppy?"*
-
-### 🎨 **4. Premium UX Design**
-- **Pacific Blue Theme**: A calming, trustworthy color palette designed for animal lovers.
-- **Wizard Flow**: A guided, step-by-step analyzer interface that feels effortless.
-- **Responsive**: Perfectly optimized for both desktop and mobile use.
-
----
-
-## 📁 Project Structure
-
-A clean, modular architecture separating concerns between client and server.
+A clean, modular monorepo structure separating concerns between client and server.
 
 ```
 pawSense/
 ├── frontend/                 # Next.js Application
-│   ├── app/                  # App Router Pages
-│   │   ├── analyzer/         # Main Analyzer Wizard
-│   │   ├── layout.tsx        # Global Layout
+│   ├── app/                  # App Router & Pages
+│   │   ├── analyzer/         # Main Analysis Wizard Logic
 │   │   └── page.tsx          # Landing Page
-│   ├── components/           # Reusable UI Components
-│   ├── lib/                  # Utilities & Helpers
-│   └── public/               # Static Assets
+│   ├── components/ui/        # Reusable Shadcn Components
+│   └── lib/                  # Utilities & Helpers
 │
 ├── backend/                  # Python API Server
 │   ├── app/
-│   │   ├── api/              # API Routes (endpoints)
-│   │   ├── models/           # Logic for loading AI models
-│   │   ├── services/         # Business logic layer
-│   │   └── config.py         # Configuration management
-│   ├── tests/                # Unit tests
-│   ├── vlm_extension.py      # Vision-Language Logic
-│   └── download_models.py    # Setup utility
+│   │   ├── api/routes.py     # API Endpoints
+│   │   ├── models/           # MobileNetV2 Loading Logic
+│   │   ├── services/         # Prediction Orchestration
+│   │   └── utils/            # Breed Info Helpers
+│   ├── vlm_extension.py      # Google Gemini VLM Integration
+│   └── requirements.txt      # Python Dependencies
 │
-└── doc/                      # Documentation
-    ├── ENV_CONFIGURATION_GUIDE.md  # Detailed Env Setup
-    └── GITHUB_CLEANUP_GUIDE.md     # Maintenance Guide
+└── README.md                 # Project Overview
 ```
 
 ---
 
 ## 🚀 Getting Started
 
+Follow these steps to set up PawSense locally.
+
 ### Prerequisites
-- **Node.js** 18+
-- **Python** 3.10+
-- **Git**
+*   **Node.js 18+**
+*   **Python 3.10+**
+*   **Google Gemini API Key** (Get one for free at [aistudio.google.com](https://aistudio.google.com/))
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Avinash55o/pawSense.git
-cd pawSense
-```
+### 1. Backend Setup (Python)
 
-### 2. Backend Setup
 ```bash
+# Navigate to backend
 cd backend
+
+# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Download the heavy AI models (approx 2GB total)
+# Create .env file
+echo "GOOGLE_GEMINI_API_KEY=your_api_key_here" > .env
+echo "ALLOWED_ORIGINS=http://localhost:3000" >> .env
+
+# Download the lightweight model (MobileNetV2)
 python download_models.py
 
 # Start the server
 python -m uvicorn app.main:app --reload
 ```
-*The backend will run on `http://localhost:8000`*
+*Server runs at `http://localhost:8000`*
 
-### 3. Frontend Setup
+### 2. Frontend Setup (Next.js)
+
 ```bash
+# Navigate to frontend
 cd ../frontend
+
+# Install dependencies
 npm install
 
-# Create environment file
-cp .env.local.example .env.local
+# Configure environment
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
 
-# Run development server
+# Start development server
 npm run dev
 ```
-*The frontend will run on `http://localhost:3000`*
-
----
-
-## 🔮 Future Roadmap
-
-We are constantly improving PawSense. Here is what's coming next:
-
-### **Short Term (v1.1)**
-- [ ] **Multi-Dog Detection**: Identifying multiple dogs in a single frame.
-- [ ] **Export Results**: Download analysis as a PDF report.
-- [ ] **Dark Mode**: Complete theme support for night-time usage.
-
-### **Medium Term (v1.5)**
-- [ ] **Adoption Matcher**: Connect identified breeds with local rescue centers.
-- [ ] **Health Screening**: Preliminary visual check for common skin/eye issues (experimental).
-- [ ] **User Accounts**: Save your analysis history.
-
-### **Long Term (v2.0)**
-- [ ] **Mobile App**: Native iOS/Android application using React Native.
-- [ ] **Community API**: Public API for other developers to build on our model.
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please check our [Issues](https://github.com/Avinash55o/pawSense/issues) page.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 👨‍💻 Author
-
-**Avinash Boruah**  
-*Full Stack Developer & AI Enthusiast*
-
-- 🌐 Portfolio: [avinashboruah.netlify.app](https://avinashboruah.netlify.app/)
-- 🐙 GitHub: [@Avinash55o](https://github.com/Avinash55o)
-- 💼 LinkedIn: [Avinash Boruah](https://linkedin.com/in/avinash-boruah)
-
----
-
-> **Disclaimer**: PawSense is an AI tool and should not replace professional veterinary advice. DNA tests remain the only 100% accurate way to determine breed.
-
-Made with ❤️ and 🐾 by Avinash.
+*App runs at `http://localhost:3000`*
