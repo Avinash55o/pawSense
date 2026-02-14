@@ -1,4 +1,3 @@
-from transformers import pipeline
 import logging
 import gc
 
@@ -17,6 +16,7 @@ class BreedClassifier:
             gc.collect()
             
             try:
+                from transformers import pipeline
                 self.model = pipeline(
                     "image-classification",
                     model="google/mobilenet_v2_1.0_224",
