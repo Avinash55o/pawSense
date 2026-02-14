@@ -45,6 +45,7 @@ class PredictionService:
     def _format_predictions(self, raw_predictions: List[Dict]) -> List[Dict[str, Any]]:
         """
         Format raw predictions into standardized format.
+        Only includes actual dog breeds, filtering out non-dog ImageNet classes.
         
         Args:
             raw_predictions: Raw predictions from classifier
@@ -52,12 +53,20 @@ class PredictionService:
         Returns:
             Formatted predictions with breed info
         """
-        from app.utils.breed_info import get_breed_info
+        from app.utils.breed_info import get_breed_info, get_all_breeds
+        
+        # Get list of valid dog breeds
+        valid_breeds = set(get_all_breeds())
         
         predictions = []
         
         for pred in raw_predictions:
-            breed_name = pred['label'].lower().replace(' ', '_')
+            breed_name = pred['label'].lower().replace(' ', '_').replace('-', '_')
+            
+            # FILTER: Only include predictions that are actual dog breeds
+            if breed_name not in valid_breeds:
+                logger.info(f"Skipping non-dog classification: {breed_name} (score: {pred['score']:.3f})")
+                continue
             
             # Try to get breed info, fallback to generic if not found
             try:
@@ -77,6 +86,22 @@ class PredictionService:
                 "confidence": float(pred['score']),
                 "info": breed_info
             })
+        
+        # If no valid dog breeds found, return "unknown" placeholder
+        if not predictions:
+            logger.warning("No dog breeds detected in image - all top predictions were non-dog classes")
+            predictions = [{
+                "breed": "unknown",
+                "confidence": 0.0,
+                "info": {
+                    "name": "Unknown",
+                    "description": "Could not identify a dog breed in this image. This might not be a dog photo, or the image quality may be too low for accurate classification.",
+                    "characteristics": [],
+                    "size": "Unknown",
+                    "energy_level": "Unknown",
+                    "good_with_children": None
+                }
+            }]
         
         return predictions
     

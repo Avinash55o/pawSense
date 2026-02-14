@@ -60,41 +60,40 @@ class DogBreedVLM:
                 return "Unable to analyze the image at this time."
                 
         except Exception as e:
+            error_msg = str(e)
             logger.error(f"Gemini API request failed: {repr(e)}")
-            return f"Error analyzing image: {str(e)[:100]}"
+            
+            # Handle specific error types with user-friendly messages
+            if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
+                return "⚠️ This feature is temporarily unavailable due to API rate limits. Please try again later or use the Basic analysis mode."
+            elif "400" in error_msg:
+                return "Unable to process this image. Please try a different image."
+            elif "401" in error_msg or "403" in error_msg or "API key" in error_msg:
+                return "API authentication issue. Please contact support."
+            else:
+                return f"Unable to analyze the image at this time. Please use Basic analysis mode."
 
     def process_image(self, image: Image.Image) -> List[Dict[str, Any]]:
-        """Process an image using the local MobileNet classifier."""
+        """Process an image using the prediction service (with filtering)."""
         try:
-            if self.classifier is None:
+            # Use the prediction service which filters out non-dog classifications
+            from app.services.prediction_service import get_prediction_service
+            
+            prediction_service = get_prediction_service()
+            if prediction_service is None:
                 return [{
                     "breed": "unknown",
                     "confidence": 0.0,
-                    "info": {"description": "Classifier not available"}
+                    "info": {"description": "Prediction service not available"}
                 }]
             
             if image.mode != 'RGB':
                 image = image.convert('RGB')
                 
-            # Predict using local classifier
-            raw_predictions = self.classifier.predict(image)
+            # Get filtered predictions from prediction service
+            predictions = prediction_service.predict_breed(image)
             
-            results = []
-            for pred in raw_predictions[:5]:  # Top 5 predictions
-                breed_name = pred.get('breed', 'unknown')
-                confidence = pred.get('confidence', 0.0)
-                
-                # Get breed info
-                breed_info = self._get_breed_info(breed_name)
-                
-                result = {
-                    "breed": breed_name,
-                    "confidence": confidence,
-                    "info": breed_info
-                }
-                results.append(result)
-                
-            return results
+            return predictions
             
         except Exception as e:
             logger.error(f"Image processing failed: {e}")
@@ -109,7 +108,7 @@ class DogBreedVLM:
         Analyze image and add natural language descriptions.
         Uses Gemini API if available, otherwise falls back to templates.
         """
-        # Get basic predictions from local classifier
+        # Get basic predictions from prediction service (with filtering)
         predictions = self.process_image(image)
         
         if not predictions:
@@ -153,7 +152,7 @@ class DogBreedVLM:
     def visual_reasoning_analysis(self, image: Image.Image) -> Dict[str, Any]:
         """
         Perform deep visual reasoning analysis using Gemini.
-        Falls back to template-based analysis if Gemini unavailable.
+        Falls back to template-based analysis if Gemini unavailable or errors occur.
         """
         # Get predictions
         predictions = self.analyze_with_description(image)
@@ -175,16 +174,26 @@ class DogBreedVLM:
                 reasoning_prompt = f"Looking at this dog image, what visual features indicate it's a {top_info.get('name', top_breed)}? List 3-5 specific physical characteristics you can see."
                 visual_reasoning = self._query_gemini_api(image, reasoning_prompt)
                 
+                # Check if we got an error message back
+                if visual_reasoning and ("⚠️" in visual_reasoning or "Unable to" in visual_reasoning or "unavailable" in visual_reasoning):
+                    # Gemini failed, use template
+                    logger.warning("Gemini returned error, falling back to template for visual reasoning")
+                    visual_reasoning = None  # Will trigger fallback below
+                
                 # Comparative reasoning
                 if second_breed and second_breed != "unknown":
                     second_info = predictions[1].get('info', {})
                     compare_prompt = f"Why does this dog look more like a {top_info.get('name', top_breed)} than a {second_info.get('name', second_breed)}? Explain in one sentence."
                     comparative_reasoning = self._query_gemini_api(image, compare_prompt)
+                    
+                    # Check for error
+                    if comparative_reasoning and ("⚠️" in comparative_reasoning or "Unable to" in comparative_reasoning):
+                        comparative_reasoning = None
                 
                 # Extract features from Gemini
-                features_prompt = "List the dog's key physical features (ears type, coat type, build, color) in as short phrases, comma-separated."
+                features_prompt = "List the dog's key physical features (ears type, coat type, build, color) as short phrases, comma-separated."
                 features_response = self._query_gemini_api(image, features_prompt)
-                if features_response and not features_response.startswith("Error"):
+                if features_response and not ("⚠️" in features_response or "Unable to" in features_response or "Error" in features_response):
                     key_features = [f.strip() for f in features_response.split(',')[:5]]
                     
             except Exception as e:
@@ -196,7 +205,7 @@ class DogBreedVLM:
         
         if not comparative_reasoning and second_breed and second_breed != "unknown":
             second_info = predictions[1].get('info', {})
-            comparative_reasoning = f"I believe this is a {top_info.get('name', top_breed)} rather than a {second_info.get('name', second_breed)}."
+            comparative_reasoning = f"High confidence in primary prediction."
         
         if not key_features:
             key_features = self._extract_breed_features(top_breed)

@@ -116,13 +116,13 @@ async def health_check_alias():
 @router.post("/api/vision-language/analyze")
 async def analyze_with_vlm(file: UploadFile = File(...)):
     """
-    Analyze an image using Vision-Language Model (BLIP).
+    Analyze an image using Vision-Language Model with Q&A capability.
     
     Args:
         file: Uploaded image file
         
     Returns:
-        VLM analysis results
+        VLM analysis results with MobileNet predictions
     """
     try:
         # Read image
@@ -132,13 +132,12 @@ async def analyze_with_vlm(file: UploadFile = File(...)):
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
-        # Import VLM and get classifier (lazy load)
-        from vlm_extension import DogBreedVLM
-        from app.main import breed_classifier
-        vlm = DogBreedVLM(classifier=breed_classifier)
+        # ALWAYS get base predictions from MobileNet first (same as Reasoning mode)
+        prediction_service = get_prediction_service()
+        if prediction_service is None:
+            raise HTTPException(status_code=503, detail="Prediction service not available")
         
-        # Process with VLM
-        predictions = vlm.process_image(image)
+        predictions = prediction_service.predict_breed(image)
         
         return {
             "success": True,
@@ -159,7 +158,7 @@ async def visual_reasoning(file: UploadFile = File(...)):
         file: Uploaded image file
         
     Returns:
-        Visual reasoning results
+        Visual reasoning results with MobileNet predictions
     """
     try:
         # Read image
@@ -169,13 +168,25 @@ async def visual_reasoning(file: UploadFile = File(...)):
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
-        # Import VLM and get classifier
+        # ALWAYS get base predictions from MobileNet first
+        prediction_service = get_prediction_service()
+        if prediction_service is None:
+            raise HTTPException(status_code=503, detail="Prediction service not available")
+        
+        base_predictions = prediction_service.predict_breed(image)
+        
+        # Import VLM for enhanced reasoning
         from vlm_extension import DogBreedVLM
         from app.main import breed_classifier
         vlm = DogBreedVLM(classifier=breed_classifier)
         
-        # Use the correct method: visual_reasoning_analysis
+        # Try visual reasoning analysis with Gemini
         result = vlm.visual_reasoning_analysis(image)
+        
+        # ALWAYS include base predictions for breed display
+        # If VLM didn't provide predictions or failed, use base predictions
+        if 'predictions' not in result or not result['predictions']:
+            result['predictions'] = base_predictions
         
         return result
         
