@@ -144,20 +144,21 @@ export default function Analyzer() {
       const formData = new FormData();
       formData.append("file", selectedImage);
 
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       let endpoint = "";
       switch (analysisType) {
         case "basic":
-          endpoint = "/api/classification/predict";
+          endpoint = `${API_URL}/api/classification/predict`;
           break;
         case "vlm":
-          endpoint = "/api/vision-language/analyze";
+          endpoint = `${API_URL}/api/vision-language/analyze`;
           formData.append("include_description", "true");
           break;
         case "reasoning":
-          endpoint = "/api/vision-language/reasoning";
+          endpoint = `${API_URL}/api/vision-language/reasoning`;
           break;
         default:
-          endpoint = "/api/classification/predict";
+          endpoint = `${API_URL}/api/classification/predict`;
       }
 
       const response = await fetch(endpoint, {
@@ -204,7 +205,8 @@ export default function Analyzer() {
       formData.append("file", selectedImage);
       formData.append("query", query);
 
-      const response = await fetch("/api/vision-language/query", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${API_URL}/api/vision-language/query`, {
         method: "POST",
         body: formData,
       });
