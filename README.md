@@ -3,7 +3,6 @@
 ![Banner](https://img.shields.io/badge/AI-Powered-blueviolet?style=for-the-badge&logo=google-gemini)
 ![Frontend](https://img.shields.io/badge/Frontend-Next.js_14-black?style=for-the-badge&logo=next.js)
 ![Backend](https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge&logo=fastapi)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
 > **"More than just a breed classifier. It's an AI that *sees* and *understands* your dog."**
 
@@ -75,7 +74,7 @@ graph LR
 
 ---
 
-## � Project Structure
+##  Project Structure
 
 A clean, modular monorepo structure separating concerns between client and server.
 
@@ -102,7 +101,7 @@ pawSense/
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 Follow these steps to set up PawSense locally.
 
